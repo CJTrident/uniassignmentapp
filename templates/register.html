@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construction App - Register</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image:
+                    linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7));
+        }
+
+        .register-container {
+            background-color: #1e1e1e;
+            padding: 2.5rem;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+        }
+
+        .title {
+            color: #fff;
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 0.8rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .register-btn {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .login-btn {
+            background-color: #1e1e1e;
+            color: #fff;
+            border: 1px solid #333;
+        }
+
+        .btn:hover {
+            background-color: #444;
+            transform: translateY(-2px);
+        }
+
+        .login-btn:hover {
+            background-color: #2d2d2d;
+        }
+
+        .password-requirements {
+            color: #888;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background-color: #2d2d2d;
+            border-radius: 5px;
+        }
+
+        .requirement {
+            margin: 0.2rem 0;
+        }
+
+        .requirement.valid {
+            color: #4CAF50;
+        }
+
+        .requirement.invalid {
+            color: #888;
+        }
+    </style>
+    <script>
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const lengthReq = document.getElementById('length');
+            const symbolReq = document.getElementById('symbol');
+            const registerBtn = document.getElementById('registerBtn');
+
+            // Check length requirement
+            if(password.length >= 6) {
+                lengthReq.classList.add('valid');
+                lengthReq.classList.remove('invalid');
+            } else {
+                lengthReq.classList.add('invalid');
+                lengthReq.classList.remove('valid');
+            }
+
+            // Check symbol requirement
+            if(/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+                symbolReq.classList.add('valid');
+                symbolReq.classList.remove('invalid');
+            } else {
+                symbolReq.classList.add('invalid');
+                symbolReq.classList.remove('valid');
+            }
+
+            // Enable/disable register button based on requirements
+            registerBtn.disabled = !(password.length >= 6 && /[!@#$%^&*(),.?":{}|<>]/.test(password));
+        }
+    </script>
+</head>
+<body>
+<div class="register-container">
+    <h1 class="title">Register</h1>
+    <form action="/register" method="POST">
+        <input type="text" name="firstName" placeholder="First Name" required>
+        <input type="text" name="lastName" placeholder="Last Name" required>
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" id="password" name="password"
+               placeholder="Password" required
+               oninput="validatePassword()">
+
+        <div class="password-requirements">
+            Password requirements:
+            <div id="length" class="requirement invalid">
+                ● Minimum 6 characters
+            </div>
+            <div id="symbol" class="requirement invalid">
+                ● At least one special character (!@#$%^&*(),.?":{}|<>)
+            </div>
+        </div>
+
+        <button type="submit" id="registerBtn" class="btn register-btn" disabled>Register</button>
+    </form>
+    <a href="/login"><button class="btn login-btn">Back to Login</button></a>
+</div>
+</body>
+</html>
