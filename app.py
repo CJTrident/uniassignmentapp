@@ -108,7 +108,7 @@ def register():
 
 @app.route('/dashboard')
 def dashboard():
-    return "Welcome to the Dashboard! (To be implemented)"
+    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     # init_db()  # Uncomment when ready to set up the database
