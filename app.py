@@ -88,6 +88,10 @@ def dashboard():
 def test_500():
     raise Exception("Test 500 error")
 
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
+
 
 if __name__ == '__main__':
     app.run(debug=False)  # Set debug=False for production
