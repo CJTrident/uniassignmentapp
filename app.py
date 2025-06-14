@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
 import traceback
 import uuid
 
@@ -11,19 +10,6 @@ app.secret_key = 'your_secret_key_here'  # Required for flash messages
 def generate_error_id():
     """Generate a unique error ID for tracking"""
     return str(uuid.uuid4())[:8]
-
-
-# Admin authentication decorator
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # For now, we'll just check if user is logged in as admin
-        # In a real application, you'd want to check session data
-        if request.args.get('login_name') != 'admin':  # Temporary check
-            flash('Admin access required', 'error')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 @app.errorhandler(404)
@@ -97,22 +83,10 @@ def dashboard():
     return render_template('dashboard.html')
 
 
-# New admin route with authentication
-@app.route('/admin')
-@admin_required
-def admin():
-    # For now, just render the admin template
-    # In a real application, you'd want to pass data to the template
-    return render_template('admin.html')
-
-
 # Optional test route for 500 errors (remove in production)
 @app.route('/test-500')
 def test_500():
     raise Exception("Test 500 error")
-@app.route('/admin')
-def admin():
-    return render_template('admin.html')
 
 
 if __name__ == '__main__':
