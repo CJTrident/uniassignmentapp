@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import traceback
 import uuid
 
@@ -9,7 +10,8 @@ app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 
 def get_db_connection():
     return psycopg2.connect(
-        "postgresql://neondb_owner:npg_Lw8ei2tjzQKd@ep-tight-wave-abc3bc1l-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+        "postgresql://neondb_owner:npg_Lw8ei2tjzQKd@ep-tight-wave-abc3bc1l-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require",
+        cursor_factory=RealDictCursor
     )
 
 def generate_error_id():
@@ -44,38 +46,34 @@ def register():
 
         # Validate password requirements
         if len(password) < 6 or not any(char in '!@#$%^&*(),.?":{}|<>' for char in password):
-            flash('Password does not meet requirements!')
+            flash('Password does not meet requirements!', 'error')
             return redirect(url_for('register'))
 
         try:
-            conn = get_db_connection()
-            cur = conn.cursor()
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Check if username already exists
+                    cur.execute('SELECT * FROM users WHERE username = %s', (username,))
+                    if cur.fetchone() is not None:
+                        flash('Username already exists!', 'error')
+                        return redirect(url_for('register'))
 
-            # Check if username already exists
-            cur.execute('SELECT * FROM users WHERE username = %s', (username,))
-            if cur.fetchone() is not None:
-                flash('Username already exists!')
-                return redirect(url_for('register'))
+                    # Hash the password
+                    hashed_password = generate_password_hash(password)
 
-            # Hash the password
-            hashed_password = generate_password_hash(password)
+                    # Insert new user
+                    cur.execute(
+                        'INSERT INTO users (firstname, lastname, username, password_hash) VALUES (%s, %s, %s, %s)',
+                        (firstName, lastName, username, hashed_password)
+                    )
 
-            # Insert new user
-            cur.execute(
-                'INSERT INTO users (firstname, lastname, username, password_hash) VALUES (%s, %s, %s, %s)',
-                (firstName, lastName, username, hashed_password)
-            )
-
-            conn.commit()
-            cur.close()
-            conn.close()
-
-            flash('Registration successful! Please login.')
+                    conn.commit()
+            flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
 
         except Exception as e:
             print(f"Database Error: {e}")
-            flash('Registration failed! Please try again.')
+            flash('Registration failed! Please try again.', 'error')
             return redirect(url_for('register'))
 
     return render_template('register.html')
@@ -87,25 +85,21 @@ def login():
         password = request.form['password']
 
         try:
-            conn = get_db_connection()
-            cur = conn.cursor()
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Get user
+                    cur.execute('SELECT * FROM users WHERE username = %s', (username,))
+                    user = cur.fetchone()
 
-            # Get user
-            cur.execute('SELECT * FROM users WHERE username = %s', (username,))
-            user = cur.fetchone()
-
-            if user and check_password_hash(user[4], password):  # Assuming password_hash is at index 4
-                flash('Login successful!', 'success')
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Invalid username or password', 'error')
-
-            cur.close()
-            conn.close()
+                    if user and check_password_hash(user['password_hash'], password):
+                        flash('Login successful!', 'success')
+                        return redirect(url_for('dashboard'))
+                    else:
+                        flash('Invalid username or password', 'error')
 
         except Exception as e:
             print(f"Database Error: {e}")
-            flash('Login failed! Please try again.')
+            flash('Login failed! Please try again.', 'error')
 
     return render_template('login.html')
 
@@ -120,24 +114,20 @@ def admin():
 if __name__ == '__main__':
     # Test database connection on startup
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # Create users table if it doesn't exist
-        cur.execute('''
-                    CREATE TABLE IF NOT EXISTS users (
-                                                         id SERIAL PRIMARY KEY,
-                                                         firstname VARCHAR(100) NOT NULL,
-                        lastname VARCHAR(100) NOT NULL,
-                        username VARCHAR(100) UNIQUE NOT NULL,
-                        password_hash VARCHAR(255) NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    ''')
-
-        conn.commit()
-        cur.close()
-        conn.close()
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Create users table if it doesn't exist
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS users (
+                                                                 id SERIAL PRIMARY KEY,
+                                                                 firstname VARCHAR(100) NOT NULL,
+                                lastname VARCHAR(100) NOT NULL,
+                                username VARCHAR(100) UNIQUE NOT NULL,
+                                password_hash VARCHAR(255) NOT NULL,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                )
+                            ''')
+                conn.commit()
         print("Database connection and table setup successful!")
     except Exception as e:
         print(f"Database setup error: {e}")
