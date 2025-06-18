@@ -39,10 +39,18 @@ def home():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        firstName = request.form['firstName']
-        lastName = request.form['lastName']
-        username = request.form['username']
-        password = request.form['password']
+        # Debug: print out the form data
+        print(f"Form data received: {request.form}")
+
+        firstName = request.form.get('firstName')
+        lastName = request.form.get('lastName')
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # Sanity check for empty fields (should not happen with 'required', but just in case)
+        if not all([firstName, lastName, username, password]):
+            flash('Please fill out all fields!', 'error')
+            return redirect(url_for('register'))
 
         # Validate password requirements
         if len(password) < 6 or not any(char in '!@#$%^&*(),.?":{}|<>' for char in password):
@@ -72,8 +80,10 @@ def register():
             return redirect(url_for('login'))
 
         except Exception as e:
-            print(f"Database Error: {e}")
-            flash('Registration failed! Please try again.', 'error')
+            # Show the real error to user for debugging:
+            error_msg = str(e)
+            print(f"Database Error: {error_msg}")
+            flash(f'Registration failed! {error_msg}', 'error')
             return redirect(url_for('register'))
 
     return render_template('register.html')
@@ -81,8 +91,8 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
 
         try:
             with get_db_connection() as conn:
