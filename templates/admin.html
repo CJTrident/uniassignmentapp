@@ -261,6 +261,7 @@
         <button class="tab-button active" onclick="switchTab('users', event)">Users</button>
         <button class="tab-button" onclick="switchTab('resources', event)">Resources</button>
         <button class="tab-button" onclick="switchTab('equipment', event)">Equipment</button>
+        <button class="tab-button" onclick="switchTab('galleries', event)">Galleries</button>
     </div>
 
     <!-- Users Tab -->
@@ -351,6 +352,40 @@
             {% endfor %}
         </div>
     </div>
+
+    <!-- Galleries Tab -->
+    <div id="galleries-tab" class="tab-content">
+        <div class="section-header">
+            <div class="search-container">
+                <input type="text"
+                       class="search-bar"
+                       placeholder="Search galleries..."
+                       id="gallerySearchInput"
+                       oninput="searchGalleries()">
+            </div>
+            <button class="add-button" onclick="showGalleryModal()">
+                <span>+</span> Add Gallery
+            </button>
+        </div>
+
+        <div class="gallery" id="galleries-gallery">
+            {% for gallery in galleries %}
+                <div class="user-card">
+                    <div class="user-info">
+                        <h3>{{ gallery.name }}</h3>
+                        {% if gallery.image %}
+                            <img src="{{ gallery.image }}" alt="{{ gallery.name }}" style="width:100%; max-width:210px; border-radius:7px; margin-top:10px;">
+                        {% endif %}
+                        <p>ID: {{ gallery.id }}</p>
+                    </div>
+                    <form method="post" action="{{ url_for('delete_gallery', gallery_id=gallery.id) }}" style="margin:0;">
+                        <button class="button button-danger" type="submit"
+                                onclick="return confirm('Are you sure you want to remove this gallery?')">Remove Gallery</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 
 <!-- Modal for confirmation -->
@@ -398,6 +433,22 @@
         </form>
     </div>
 </div>
+
+<!-- Gallery Modal -->
+<div class="modal" id="galleryModal">
+    <div class="modal-content">
+        <h2>Add New Gallery</h2>
+        <form method="post" action="{{ url_for('add_gallery') }}">
+            <input type="text" name="galleryName" id="galleryName" placeholder="Gallery Name" required>
+            <input type="text" name="galleryImage" id="galleryImage" placeholder="Image URL (optional)">
+            <div class="modal-buttons">
+                <button class="modal-button cancel-button" type="button" onclick="hideGalleryModal()">Cancel</button>
+                <button class="modal-button confirm-button" type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // Simple tab switching
     function switchTab(tab, evt) {
@@ -413,11 +464,13 @@
     function hideResourceModal() { document.getElementById('resourceModal').style.display = 'none'; }
     function showEquipmentModal() { document.getElementById('equipmentModal').style.display = 'flex'; }
     function hideEquipmentModal() { document.getElementById('equipmentModal').style.display = 'none'; }
+    function showGalleryModal() { document.getElementById('galleryModal').style.display = 'flex'; }
+    function hideGalleryModal() { document.getElementById('galleryModal').style.display = 'none'; }
     function hideConfirmDialog() { document.getElementById('confirmModal').style.display = 'none'; }
     // Add keyboard esc to close modals
     window.addEventListener('keydown', function (evt) {
         if (evt.key === "Escape") {
-            hideResourceModal(); hideEquipmentModal(); hideConfirmDialog();
+            hideResourceModal(); hideEquipmentModal(); hideGalleryModal(); hideConfirmDialog();
         }
     });
 
@@ -440,6 +493,12 @@
             card.style.display = card.innerText.toLowerCase().includes(val) ? '' : 'none';
         });
     }
+    function searchGalleries() {
+        const val = document.getElementById('gallerySearchInput').value.toLowerCase();
+        document.querySelectorAll('#galleries-gallery .user-card').forEach(card => {
+            card.style.display = card.innerText.toLowerCase().includes(val) ? '' : 'none';
+        });
+    }
 </script>
 </body>
-</html> d
+</html>
