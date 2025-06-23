@@ -10,13 +10,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'your_secret_key_here')
+app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
 
 def get_db_connection():
-    return psycopg2.connect(
-        os.getenv('DATABASE_URL', "postgresql://neondb_owner:npg_Lw8ei2tjzQKd@ep-tight-wave-abc3bc1l-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"),
-        cursor_factory=RealDictCursor
-    )
+    try:
+        conn = psycopg2.connect(
+            "postgres://neondb_owner:npg_Lw8ei2tjzQKd@ep-late-king-ablwak3c-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require",
+            cursor_factory=RealDictCursor
+        )
+        print("Database connection successful")
+        return conn
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        raise
 
 def generate_error_id():
     return str(uuid.uuid4())[:8]
@@ -72,15 +78,16 @@ def register():
                         'INSERT INTO users (firstname, lastname, username, password_hash) VALUES (%s, %s, %s, %s)',
                         (firstName, lastName, username, hashed_password)
                     )
-
                     conn.commit()
+                    print(f"User {username} registered successfully")
+
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
 
         except Exception as e:
             error_msg = str(e)
-            print(f"Database Error: {error_msg}")
-            flash(f'Registration failed! {error_msg}', 'error')
+            print(f"Database Error during registration: {error_msg}")
+            flash(f'Registration failed! Please try again.', 'error')
             return redirect(url_for('register'))
 
     return render_template('register.html')
@@ -91,70 +98,101 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
 
+        print(f"Login attempt for username: {username}")
+
+        if not username or not password:
+            flash('Please enter both username and password', 'error')
+            return redirect(url_for('login'))
+
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
+                    print("Executing login query...")
                     cur.execute('SELECT * FROM users WHERE username = %s', (username,))
                     user = cur.fetchone()
+                    print(f"Found user: {user is not None}")
 
                     if user and check_password_hash(user['password_hash'], password):
+                        session.clear()
                         session['username'] = username
+                        session['user_id'] = user['id']
                         flash('Login successful!', 'success')
+                        print(f"User {username} logged in successfully")
                         return redirect(url_for('dashboard'))
                     else:
                         flash('Invalid username or password', 'error')
+                        print("Invalid login attempt")
 
         except Exception as e:
-            print(f"Database Error: {e}")
+            print(f"Database Error during login: {e}")
             flash('Login failed! Please try again.', 'error')
 
     return render_template('login.html')
 
 @app.route('/dashboard')
 def dashboard():
-    username = session.get('username')
-    if not username:
+    if 'username' not in session:
         flash('Please log in first.', 'error')
         return redirect(url_for('login'))
-    return render_template('dashboard.html', username=username)
 
-@app.route('/admin')
-def admin():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # Fetch users
+                cur.execute('SELECT firstname, lastname FROM users WHERE username = %s', (session['username'],))
+                user_info = cur.fetchone()
+                if user_info:
+                    return render_template('dashboard.html',
+                                           username=session['username'],
+                                           firstname=user_info['firstname'],
+                                           lastname=user_info['lastname'])
+    except Exception as e:
+        print(f"Dashboard Error: {e}")
+        flash('Error loading dashboard', 'error')
+        return redirect(url_for('login'))
+
+    return render_template('dashboard.html', username=session['username'])
+
+@app.route('/admin')
+def admin():
+    if 'username' not in session:
+        flash('Please log in first.', 'error')
+        return redirect(url_for('login'))
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT permission_level FROM users WHERE username = %s', (session['username'],))
+                user = cur.fetchone()
+
+                if not user or user['permission_level'] != 'Admin':
+                    flash('Unauthorized access', 'error')
+                    return redirect(url_for('dashboard'))
+
                 cur.execute("SELECT id, firstname, lastname, username, permission_level, submissions FROM users")
                 users = cur.fetchall()
 
-                # Fetch resources
                 cur.execute("SELECT id, name FROM resources")
                 resources = cur.fetchall()
 
-                # Fetch equipment
                 cur.execute("SELECT id, name, status FROM equipment")
                 equipment_list = cur.fetchall()
 
-        return render_template(
-            'admin.html',
-            users=users,
-            resources=resources,
-            equipment_list=equipment_list
-        )
+        return render_template('admin.html',
+                               users=users,
+                               resources=resources,
+                               equipment_list=equipment_list)
     except Exception as e:
         print(f"Admin Data Load Error: {e}")
         flash("Failed to load admin dashboard.", "error")
-        return render_template(
-            'admin.html',
-            users=[],
-            resources=[],
-            equipment_list=[]
-        )
+        return render_template('admin.html',
+                               users=[],
+                               resources=[],
+                               equipment_list=[])
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
-    flash('Logged out.', 'success')
+    session.clear()
+    flash('Logged out successfully.', 'success')
     return redirect(url_for('login'))
 
 # Initialize database tables
@@ -187,11 +225,10 @@ try:
                             )
                         ''')
             conn.commit()
-    print("Database connection and table setup successful!")
+    print("Database tables initialized successfully!")
 except Exception as e:
-    print(f"Database setup error: {e}")
+    print(f"Database initialization error: {e}")
 
-# For local development
 if __name__ == '__main__':
     app.run(debug=True)
 
