@@ -51,6 +51,13 @@
             font-size: 1rem;
         }
 
+        label {
+            color: #ccc;
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+            display: block;
+        }
+
         input:focus {
             outline: none;
             border-color: #666;
@@ -73,19 +80,20 @@
             color: #fff;
         }
 
-        .login-btn {
-            background-color: #1e1e1e;
-            color: #fff;
-            border: 1px solid #333;
+        .login-link {
+            display: block;
+            text-align: center;
+            margin-top: 0.7rem;
+            text-decoration: none;
+            color: #51b3ff;
+            font-weight: 500;
+            font-size: 1rem;
         }
 
-        .btn:hover {
+        .btn:hover, .login-link:hover {
             background-color: #444;
             transform: translateY(-2px);
-        }
-
-        .login-btn:hover {
-            background-color: #2d2d2d;
+            color: #fff;
         }
 
         .password-requirements {
@@ -117,6 +125,10 @@
             padding: 0.5rem;
             border-radius: 5px;
         }
+
+        .flash-message.success {
+            color: #4CAF50;
+        }
     </style>
     <script>
         function validatePassword() {
@@ -125,7 +137,7 @@
             const symbolReq = document.getElementById('symbol');
             const registerBtn = document.getElementById('registerBtn');
 
-            // Check length requirement
+            // Length check
             if(password.length >= 6) {
                 lengthReq.classList.add('valid');
                 lengthReq.classList.remove('invalid');
@@ -134,7 +146,7 @@
                 lengthReq.classList.remove('valid');
             }
 
-            // Check symbol requirement
+            // Special character check
             if(/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
                 symbolReq.classList.add('valid');
                 symbolReq.classList.remove('invalid');
@@ -143,29 +155,43 @@
                 symbolReq.classList.remove('valid');
             }
 
-            // Enable/disable register button based on requirements
+            // Enable register only if both met
             registerBtn.disabled = !(password.length >= 6 && /[!@#$%^&*(),.?":{}|<>]/.test(password));
         }
+
+        // On DOMContentLoaded, ensure registration button is disabled if input is not valid
+        document.addEventListener("DOMContentLoaded", function() {
+            validatePassword();
+        });
     </script>
 </head>
 <body>
 <div class="register-container">
-    <h1 class="title">Register</h1>
-    {% with messages = get_flashed_messages() %}
+    <div class="title">Register</div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for message in messages %}
-                <div class="flash-message">
+            {% for category, message in messages %}
+                <div class="flash-message {{ category == 'success' and 'success' }}">
                     {{ message }}
                 </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
-    <form action="/register" method="POST">
-        <input type="text" name="firstName" placeholder="First Name" required>
-        <input type="text" name="lastName" placeholder="Last Name" required>
-        <input type="text" name="username" placeholder="Username" required>
+    <form action="{{ url_for('register') }}" method="POST" autocomplete="off">
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" name="firstName" placeholder="First Name" required autocomplete="given-name">
+
+        <label for="lastName">Last Name</label>
+        <input type="text" id="lastName" name="lastName" placeholder="Last Name" required autocomplete="family-name">
+
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Username" required autocomplete="username">
+
+        <label for="password">Password</label>
         <input type="password" id="password" name="password"
-               placeholder="Password" required
+               placeholder="Password"
+               required
+               autocomplete="new-password"
                oninput="validatePassword()">
 
         <div class="password-requirements">
@@ -174,13 +200,13 @@
                 ● Minimum 6 characters
             </div>
             <div id="symbol" class="requirement invalid">
-                ● At least one special character (!@#$%^&*(),.?":{}|<>)
+                ● At least one special character (!@#$%^&*(),.?":{}|&lt;&gt;)
             </div>
         </div>
 
         <button type="submit" id="registerBtn" class="btn register-btn" disabled>Register</button>
     </form>
-    <a href="/login"><button class="btn login-btn">Back to Login</button></a>
+    <a href="{{ url_for('login') }}" class="login-link">Back to Login</a>
 </div>
 </body>
 </html>
