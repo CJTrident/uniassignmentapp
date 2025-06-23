@@ -4,13 +4,17 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import traceback
 import uuid
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = os.getenv('SECRET_KEY', 'your_secret_key_here')
 
 def get_db_connection():
     return psycopg2.connect(
-        "postgresql://neondb_owner:npg_Lw8ei2tjzQKd@ep-tight-wave-abc3bc1l-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require",
+        os.getenv('DATABASE_URL', "postgresql://neondb_owner:npg_Lw8ei2tjzQKd@ep-tight-wave-abc3bc1l-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"),
         cursor_factory=RealDictCursor
     )
 
@@ -114,7 +118,6 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html', username=username)
 
-# ------------ CHANGED ADMIN ROUTE HERE ------------
 @app.route('/admin')
 def admin():
     try:
@@ -147,7 +150,6 @@ def admin():
             resources=[],
             equipment_list=[]
         )
-# --------------------------------------------------
 
 @app.route('/logout')
 def logout():
@@ -155,39 +157,43 @@ def logout():
     flash('Logged out.', 'success')
     return redirect(url_for('login'))
 
-if __name__ == '__main__':
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS users (
+# Initialize database tables
+try:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute('''
+                        CREATE TABLE IF NOT EXISTS users (
+                                                             id SERIAL PRIMARY KEY,
+                                                             firstname VARCHAR(100) NOT NULL,
+                            lastname VARCHAR(100) NOT NULL,
+                            username VARCHAR(100) UNIQUE NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL,
+                            permission_level VARCHAR(20) DEFAULT 'User',
+                            submissions INTEGER DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        ''')
+            cur.execute('''
+                        CREATE TABLE IF NOT EXISTS resources (
                                                                  id SERIAL PRIMARY KEY,
-                                                                 firstname VARCHAR(100) NOT NULL,
-                                lastname VARCHAR(100) NOT NULL,
-                                username VARCHAR(100) UNIQUE NOT NULL,
-                                password_hash VARCHAR(255) NOT NULL,
-                                permission_level VARCHAR(20) DEFAULT 'User',
-                                submissions INTEGER DEFAULT 0,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                                )
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS resources (
-                                                                     id SERIAL PRIMARY KEY,
-                                                                     name VARCHAR(100) NOT NULL
-                                )
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS equipment (
-                                                                     id SERIAL PRIMARY KEY,
-                                                                     name VARCHAR(100) NOT NULL,
-                                status VARCHAR(50) NOT NULL
-                                )
-                            ''')
+                                                                 name VARCHAR(100) NOT NULL
+                            )
+                        ''')
+            cur.execute('''
+                        CREATE TABLE IF NOT EXISTS equipment (
+                                                                 id SERIAL PRIMARY KEY,
+                                                                 name VARCHAR(100) NOT NULL,
+                            status VARCHAR(50) NOT NULL
+                            )
+                        ''')
+            conn.commit()
+    print("Database connection and table setup successful!")
+except Exception as e:
+    print(f"Database setup error: {e}")
 
-                conn.commit()
-        print("Database connection and table setup successful!")
-    except Exception as e:
-        print(f"Database setup error: {e}")
+# For local development
+if __name__ == '__main__':
+    app.run(debug=True)
 
-    app.run(debug=True) s
+# For Vercel deployment
+app = app
