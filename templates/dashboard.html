@@ -88,7 +88,7 @@
         }
 
         .stats-card .card-title {
-            color: #e0e0e0;
+            color: #e0e0e0;  /* Lighter text color for titles */
             font-size: 1.1rem;
             font-weight: 500;
         }
@@ -96,11 +96,11 @@
         .stats-value {
             font-size: 2.5rem;
             font-weight: bold;
-            color: #ffffff;
+            color: #ffffff;  /* Brighter white for the numbers */
         }
 
         .card-text {
-            color: #d0d0d0 !important;
+            color: #d0d0d0 !important;  /* Lighter color for the percentage text */
         }
 
         .floating-action-btn {
@@ -151,10 +151,7 @@
             <i class="bi bi-person-circle"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end profile-dropdown" aria-labelledby="profileDropdown">
-            <li>
-                <a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Account</a>
-                <div class="ps-3 text-muted small" style="font-size: 90%;">@{{ username }}</div>
-            </li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Account</a></li>
             <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
@@ -185,13 +182,11 @@
                 </a>
             </div>
         </div>
+
         <!-- Main Content -->
         <div class="col-md-9 col-lg-10 main-content">
             <h2 class="mb-4">Welcome to Your Dashboard</h2>
-            <div class="mb-4">
-                <span class="fw-semibold">Logged in as:</span>
-                <span class="text-info">@{{ username }}</span>
-            </div>
+
             <!-- Stats Cards -->
             <div class="row mt-4">
                 <div class="col-md-4">
