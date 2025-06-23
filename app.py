@@ -121,16 +121,15 @@ def admin():
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 # Fetch users
+                permission_fallback = False
+                users = []
                 try:
                     cur.execute("SELECT id, firstname, lastname, username, permission_level, submissions FROM users")
+                    users = cur.fetchall()
                 except Exception:
-                    # Fallback for when migration fails, excluding permission_level/submissions
                     cur.execute("SELECT id, firstname, lastname, username FROM users")
                     users = cur.fetchall()
                     permission_fallback = True
-                else:
-                    users = cur.fetchall()
-                    permission_fallback = False
 
                 # Fetch resources
                 cur.execute("SELECT id, name FROM resources")
@@ -245,7 +244,7 @@ def delete_user(user_id):
         flash("Failed to delete user.", "error")
     return redirect(url_for('admin'))
 
-# ----------- BOOTSTRAP TABLES MIGRATION -------------
+# ----------- MIGRATION COLUMN FIX -------------
 def ensure_columns_exist():
     """Ensures all needed columns exist in the table to avoid migration crashes."""
     with get_db_connection() as conn:
