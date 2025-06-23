@@ -12,7 +12,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
 
-# Database config: Use env variable for connection string for security!
 DB_URL = os.getenv(
     "DATABASE_URL",
     "postgres://neondb_owner:npg_Lw8ei2tjzQKd@ep-late-king-ablwak3c-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
@@ -50,6 +49,8 @@ def home():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # Print current DB connection for diagnostics
+    print("Using DB_URL:", DB_URL)
     if request.method == 'POST':
         firstName = request.form.get('firstName', '').strip()
         lastName = request.form.get('lastName', '').strip()
@@ -83,6 +84,15 @@ def register():
             return redirect(url_for('login'))
 
         except Exception as e:
+            # Print columns to diagnose possible table mismatch
+            try:
+                with get_db_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'")
+                        columns = cur.fetchall()
+                        print("Current users table columns are:", [row['column_name'] for row in columns])
+            except Exception as sub_e:
+                print("Failed to fetch users table columns:", sub_e)
             print(f"Registration error: {e}")
             flash('Registration failed! Please try again.', 'error')
             return redirect(url_for('register'))
@@ -189,7 +199,6 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('login'))
 
-# Initialize tables (runs once on app startup)
 def initialize_tables():
     try:
         with get_db_connection() as conn:
@@ -229,5 +238,4 @@ initialize_tables()
 if __name__ == '__main__':
     app.run(debug=True)
 
-# For Vercel deployment
-app = app
+app = app  # for Vercel
