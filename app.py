@@ -49,15 +49,14 @@ def home():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Print current DB connection for diagnostics
     print("Using DB_URL:", DB_URL)
     if request.method == 'POST':
         firstName = request.form.get('firstName', '').strip()
         lastName = request.form.get('lastName', '').strip()
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
 
-        if not all([firstName, lastName, username, password]):
+        if not all([firstName, lastName, email, password]):
             flash('Please fill out all fields!', 'error')
             return redirect(url_for('register'))
 
@@ -68,15 +67,15 @@ def register():
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute('SELECT 1 FROM users WHERE username = %s', (username,))
+                    cur.execute('SELECT 1 FROM users WHERE email = %s', (email,))
                     if cur.fetchone():
-                        flash('Username already exists!', 'error')
+                        flash('An account with that email already exists!', 'error')
                         return redirect(url_for('register'))
 
                     hashed_password = generate_password_hash(password)
                     cur.execute(
-                        'INSERT INTO users (firstname, lastname, username, password_hash) VALUES (%s, %s, %s, %s)',
-                        (firstName, lastName, username, hashed_password)
+                        'INSERT INTO users (firstname, lastname, email, password_hash) VALUES (%s, %s, %s, %s)',
+                        (firstName, lastName, email, hashed_password)
                     )
                     conn.commit()
 
@@ -84,7 +83,6 @@ def register():
             return redirect(url_for('login'))
 
         except Exception as e:
-            # Print columns to diagnose possible table mismatch
             try:
                 with get_db_connection() as conn:
                     with conn.cursor() as cur:
@@ -102,28 +100,28 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
 
-        if not username or not password:
-            flash('Please enter both username and password', 'error')
+        if not email or not password:
+            flash('Please enter both email and password', 'error')
             return redirect(url_for('login'))
 
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute('SELECT * FROM users WHERE username = %s', (username,))
+                    cur.execute('SELECT * FROM users WHERE email = %s', (email,))
                     user = cur.fetchone()
 
                     if user and check_password_hash(user['password_hash'], password):
                         session.clear()
-                        session['username'] = username
+                        session['email'] = email
                         session['user_id'] = user['id']
                         session['permission_level'] = user.get('permission_level', 'User')
                         flash('Login successful!', 'success')
                         return redirect(url_for('dashboard'))
                     else:
-                        flash('Invalid username or password', 'error')
+                        flash('Invalid email or password', 'error')
 
         except Exception as e:
             print(f"Login error: {e}")
@@ -133,19 +131,19 @@ def login():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'username' not in session:
+    if 'email' not in session:
         flash('Please log in first.', 'error')
         return redirect(url_for('login'))
 
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute('SELECT firstname, lastname FROM users WHERE username = %s', (session['username'],))
+                cur.execute('SELECT firstname, lastname FROM users WHERE email = %s', (session['email'],))
                 user_info = cur.fetchone()
                 if user_info:
                     return render_template(
                         'dashboard.html',
-                        username=session['username'],
+                        email=session['email'],
                         firstname=user_info.get('firstname', ''),
                         lastname=user_info.get('lastname', '')
                     )
@@ -154,25 +152,25 @@ def dashboard():
         flash('Error loading dashboard', 'error')
         return redirect(url_for('login'))
 
-    return render_template('dashboard.html', username=session['username'])
+    return render_template('dashboard.html', email=session['email'])
 
 @app.route('/admin')
 def admin():
-    if 'username' not in session:
+    if 'email' not in session:
         flash('Please log in first.', 'error')
         return redirect(url_for('login'))
 
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute('SELECT permission_level FROM users WHERE username = %s', (session['username'],))
+                cur.execute('SELECT permission_level FROM users WHERE email = %s', (session['email'],))
                 user = cur.fetchone()
 
                 if not user or user.get('permission_level') != 'Admin':
                     flash('Unauthorized access', 'error')
                     return redirect(url_for('dashboard'))
 
-                cur.execute('SELECT id, firstname, lastname, username, permission_level, submissions FROM users')
+                cur.execute('SELECT id, firstname, lastname, email, permission_level, submissions FROM users')
                 users = cur.fetchall()
 
                 cur.execute('SELECT id, name FROM resources')
@@ -208,7 +206,7 @@ def initialize_tables():
                                                                  id SERIAL PRIMARY KEY,
                                                                  firstname VARCHAR(100) NOT NULL,
                                 lastname VARCHAR(100) NOT NULL,
-                                username VARCHAR(100) UNIQUE NOT NULL,
+                                email VARCHAR(255) UNIQUE NOT NULL,
                                 password_hash VARCHAR(255) NOT NULL,
                                 permission_level VARCHAR(20) DEFAULT 'User',
                                 submissions INTEGER DEFAULT 0,

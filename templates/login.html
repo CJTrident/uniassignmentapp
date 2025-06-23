@@ -124,7 +124,7 @@
         {% endif %}
     {% endwith %}
     <form action="{{ url_for('login') }}" method="POST">
-        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit" class="btn login-btn">Login</button>
     </form>
@@ -134,4 +134,3 @@
 </div>
 </body>
 </html>
-d
