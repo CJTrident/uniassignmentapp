@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -102,6 +102,7 @@ def login():
                     user = cur.fetchone()
 
                     if user and check_password_hash(user['password_hash'], password):
+                        session['username'] = username  # Store logged-in user in session
                         flash('Login successful!', 'success')
                         return redirect(url_for('dashboard'))
                     else:
@@ -115,11 +116,21 @@ def login():
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    username = session.get('username')
+    if not username:
+        flash('Please log in first.', 'error')
+        return redirect(url_for('login'))
+    return render_template('dashboard.html', username=username)
 
 @app.route('/admin')
 def admin():
     return render_template('admin.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    flash('Logged out.', 'success')
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     # Test database connection on startup
