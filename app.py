@@ -114,15 +114,23 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html', username=username)
 
-# ------------ CHANGED ADMIN ROUTE HERE ------------
+# ------------ ADMIN ROUTE ------------
 @app.route('/admin')
 def admin():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 # Fetch users
-                cur.execute("SELECT id, firstname, lastname, username, permission_level, submissions FROM users")
-                users = cur.fetchall()
+                try:
+                    cur.execute("SELECT id, firstname, lastname, username, permission_level, submissions FROM users")
+                except Exception:
+                    # Fallback for when migration fails, excluding permission_level/submissions
+                    cur.execute("SELECT id, firstname, lastname, username FROM users")
+                    users = cur.fetchall()
+                    permission_fallback = True
+                else:
+                    users = cur.fetchall()
+                    permission_fallback = False
 
                 # Fetch resources
                 cur.execute("SELECT id, name FROM resources")
@@ -136,7 +144,8 @@ def admin():
             'admin.html',
             users=users,
             resources=resources,
-            equipment_list=equipment_list
+            equipment_list=equipment_list,
+            permission_fallback=permission_fallback
         )
     except Exception as e:
         print(f"Admin Data Load Error: {e}")
@@ -145,9 +154,10 @@ def admin():
             'admin.html',
             users=[],
             resources=[],
-            equipment_list=[]
+            equipment_list=[],
+            permission_fallback=True
         )
-# --------------------------------------------------
+# --------------------------------------
 
 @app.route('/logout')
 def logout():
@@ -155,10 +165,108 @@ def logout():
     flash('Logged out.', 'success')
     return redirect(url_for('login'))
 
+# -------- RESOURCE MANAGEMENT ---------
+
+@app.route('/add_resource', methods=['POST'])
+def add_resource():
+    name = request.form.get('name')
+    if not name:
+        flash('Resource name is required.', 'error')
+        return redirect(url_for('admin'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO resources (name) VALUES (%s)', (name,))
+                conn.commit()
+        flash("Resource added successfully!", "success")
+    except Exception as e:
+        print(f"Failed to add resource: {e}")
+        flash("Failed to add resource.", "error")
+    return redirect(url_for('admin'))
+
+@app.route('/delete_resource/<int:resource_id>', methods=['POST'])
+def delete_resource(resource_id):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM resources WHERE id=%s', (resource_id,))
+                conn.commit()
+        flash("Resource deleted!", "success")
+    except Exception as e:
+        print(f"Failed to delete resource: {e}")
+        flash("Failed to delete resource.", "error")
+    return redirect(url_for('admin'))
+
+# -------- EQUIPMENT MANAGEMENT --------
+
+@app.route('/add_equipment', methods=['POST'])
+def add_equipment():
+    name = request.form.get('name')
+    status = request.form.get('status')
+    if not name or not status:
+        flash('Both name and status are required for equipment.', 'error')
+        return redirect(url_for('admin'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO equipment (name, status) VALUES (%s, %s)', (name, status))
+                conn.commit()
+        flash("Equipment added successfully!", "success")
+    except Exception as e:
+        print(f"Failed to add equipment: {e}")
+        flash("Failed to add equipment.", "error")
+    return redirect(url_for('admin'))
+
+@app.route('/delete_equipment/<int:equipment_id>', methods=['POST'])
+def delete_equipment(equipment_id):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM equipment WHERE id=%s', (equipment_id,))
+                conn.commit()
+        flash("Equipment deleted!", "success")
+    except Exception as e:
+        print(f"Failed to delete equipment: {e}")
+        flash("Failed to delete equipment.", "error")
+    return redirect(url_for('admin'))
+
+# -------------- USERS -----------------
+
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM users WHERE id=%s', (user_id,))
+                conn.commit()
+        flash("User deleted!", "success")
+    except Exception as e:
+        print(f"Failed to delete user: {e}")
+        flash("Failed to delete user.", "error")
+    return redirect(url_for('admin'))
+
+# ----------- BOOTSTRAP TABLES MIGRATION -------------
+def ensure_columns_exist():
+    """Ensures all needed columns exist in the table to avoid migration crashes."""
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # Add columns if missing
+            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+            columns = set(row['column_name'] for row in cur.fetchall())
+            alter_list = []
+            if 'permission_level' not in columns:
+                alter_list.append("ADD COLUMN permission_level VARCHAR(20) DEFAULT 'User'")
+            if 'submissions' not in columns:
+                alter_list.append("ADD COLUMN submissions INTEGER DEFAULT 0")
+            if alter_list:
+                cur.execute(f"ALTER TABLE users {', '.join(alter_list)}")
+            conn.commit()
+
 if __name__ == '__main__':
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
+                # USERS table
                 cur.execute('''
                             CREATE TABLE IF NOT EXISTS users (
                                                                  id SERIAL PRIMARY KEY,
@@ -171,12 +279,14 @@ if __name__ == '__main__':
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                                 )
                             ''')
+                # RESOURCES
                 cur.execute('''
                             CREATE TABLE IF NOT EXISTS resources (
                                                                      id SERIAL PRIMARY KEY,
                                                                      name VARCHAR(100) NOT NULL
                                 )
                             ''')
+                # EQUIPMENT
                 cur.execute('''
                             CREATE TABLE IF NOT EXISTS equipment (
                                                                      id SERIAL PRIMARY KEY,
@@ -186,6 +296,9 @@ if __name__ == '__main__':
                             ''')
 
                 conn.commit()
+
+        # Migrate table columns if necessary (safe-guard for old DBs)
+        ensure_columns_exist()
         print("Database connection and table setup successful!")
     except Exception as e:
         print(f"Database setup error: {e}")
