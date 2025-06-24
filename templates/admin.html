@@ -302,7 +302,7 @@
                        id="resourceSearchInput"
                        oninput="searchResources()">
             </div>
-            <button class="add-button" onclick="showResourceModal()">
+            <button class="add-button" id="addResourceButton">
                 <span>+</span> Add Resource
             </button>
         </div>
@@ -331,7 +331,7 @@
                        id="equipmentSearchInput"
                        oninput="searchEquipment()">
             </div>
-            <button class="add-button" onclick="showEquipmentModal()">
+            <button class="add-button" id="addEquipmentButton">
                 <span>+</span> Add Equipment
             </button>
         </div>
@@ -366,14 +366,14 @@
 </div>
 
 <!-- Resource Modal -->
-<div class="modal" id="resourceModal">
+<div class="modal" id="addResourceModal">
     <div class="modal-content">
         <h2>Add New Resource</h2>
-        <form method="post" action="{{ url_for('add_resource') }}">
-            <input type="text" name="resourceName" id="resourceName" placeholder="Resource Name" required>
-            <input type="text" name="resourceId" id="resourceId" placeholder="ID Number" required>
+        <form id="addResourceForm" method="post" action="{{ url_for('add_resource') }}">
+            <input type="text" name="name" id="resourceName" placeholder="Resource Name" required>
+            <input type="text" name="id" id="resourceId" placeholder="ID Number" required>
             <div class="modal-buttons">
-                <button class="modal-button cancel-button" type="button" onclick="hideResourceModal()">Cancel</button>
+                <button class="modal-button cancel-button" type="button" id="cancelResourceBtn">Cancel</button>
                 <button class="modal-button confirm-button" type="submit">Add</button>
             </div>
         </form>
@@ -381,18 +381,18 @@
 </div>
 
 <!-- Equipment Modal -->
-<div class="modal" id="equipmentModal">
+<div class="modal" id="addEquipmentModal">
     <div class="modal-content">
         <h2>Add New Equipment</h2>
-        <form method="post" action="{{ url_for('add_equipment') }}">
-            <input type="text" name="equipmentName" id="equipmentName" placeholder="Equipment Name" required>
-            <input type="text" name="equipmentId" id="equipmentId" placeholder="ID Number" required>
-            <select name="equipmentStatus" id="equipmentStatus" class="modal-select">
+        <form id="addEquipmentForm" method="post" action="{{ url_for('add_equipment') }}">
+            <input type="text" name="name" id="equipmentName" placeholder="Equipment Name" required>
+            <input type="text" name="id" id="equipmentId" placeholder="ID Number" required>
+            <select name="status" id="equipmentStatus" class="modal-select">
                 <option value="Available">Available</option>
                 <option value="In Use">In Use</option>
             </select>
             <div class="modal-buttons">
-                <button class="modal-button cancel-button" type="button" onclick="hideEquipmentModal()">Cancel</button>
+                <button class="modal-button cancel-button" type="button" id="cancelEquipmentBtn">Cancel</button>
                 <button class="modal-button confirm-button" type="submit">Add</button>
             </div>
         </form>
@@ -407,19 +407,6 @@
         if (evt) evt.target.classList.add('active');
         else document.querySelector(`.tab-button[onclick*="${tab}"]`).classList.add('active');
     }
-
-    // Modals
-    function showResourceModal() { document.getElementById('resourceModal').style.display = 'flex'; }
-    function hideResourceModal() { document.getElementById('resourceModal').style.display = 'none'; }
-    function showEquipmentModal() { document.getElementById('equipmentModal').style.display = 'flex'; }
-    function hideEquipmentModal() { document.getElementById('equipmentModal').style.display = 'none'; }
-    function hideConfirmDialog() { document.getElementById('confirmModal').style.display = 'none'; }
-    // Add keyboard esc to close modals
-    window.addEventListener('keydown', function (evt) {
-        if (evt.key === "Escape") {
-            hideResourceModal(); hideEquipmentModal(); hideConfirmDialog();
-        }
-    });
 
     // Filter functions
     function searchUsers() {
@@ -440,6 +427,60 @@
             card.style.display = card.innerText.toLowerCase().includes(val) ? '' : 'none';
         });
     }
+
+    // Modal handlers for Resource and Equipment
+    document.addEventListener('DOMContentLoaded', function() {
+        // Resource Modal
+        const addResourceBtn = document.getElementById('addResourceButton');
+        const addResourceModal = document.getElementById('addResourceModal');
+        const cancelResourceBtn = document.getElementById('cancelResourceBtn');
+
+        if (addResourceBtn && addResourceModal) {
+            addResourceBtn.onclick = function() {
+                addResourceModal.style.display = 'flex';
+            };
+        }
+        if (cancelResourceBtn && addResourceModal) {
+            cancelResourceBtn.onclick = function() {
+                addResourceModal.style.display = 'none';
+                document.getElementById('addResourceForm').reset();
+            };
+        }
+        addResourceModal.addEventListener('click', function(e) {
+            if (e.target === addResourceModal) addResourceModal.style.display = 'none';
+        });
+
+        // Equipment Modal
+        const addEquipmentBtn = document.getElementById('addEquipmentButton');
+        const addEquipmentModal = document.getElementById('addEquipmentModal');
+        const cancelEquipmentBtn = document.getElementById('cancelEquipmentBtn');
+
+        if (addEquipmentBtn && addEquipmentModal) {
+            addEquipmentBtn.onclick = function() {
+                addEquipmentModal.style.display = 'flex';
+            };
+        }
+        if (cancelEquipmentBtn && addEquipmentModal) {
+            cancelEquipmentBtn.onclick = function() {
+                addEquipmentModal.style.display = 'none';
+                document.getElementById('addEquipmentForm').reset();
+            };
+        }
+        addEquipmentModal.addEventListener('click', function(e) {
+            if (e.target === addEquipmentModal) addEquipmentModal.style.display = 'none';
+        });
+
+        // Esc closes both modals
+        window.addEventListener('keydown', function (evt) {
+            if (evt.key === "Escape") {
+                addResourceModal.style.display = 'none';
+                addEquipmentModal.style.display = 'none';
+                hideConfirmDialog();
+            }
+        });
+    });
+
+    function hideConfirmDialog() { document.getElementById('confirmModal').style.display = 'none'; }
 </script>
 </body>
 </html>
