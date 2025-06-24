@@ -500,6 +500,60 @@ def total_activities():
         activities = []
     return render_template('total_activities.html', activities=activities)
 
+# Add this route below the last route in your file (before the if __name__ == '__main__' line)
+#############################################
+# Incidents Route
+#############################################
+
+@app.route('/incidents')
+def incidents():
+    if 'email' not in session:
+        flash('Please log in to view incidents.', 'error')
+        return redirect(url_for('login'))
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('''
+                            SELECT
+                                a.id,
+                                a.activity_date,
+                                a.activity_type,
+                                a.shift,
+                                a.shift_start,
+                                a.shift_end,
+                                a.description,
+                                a.incident_report,
+                                a.incident_details,
+                                a.location,
+                                a.manpower_count,
+                                u.firstname,
+                                u.lastname,
+                                ARRAY(
+                                    SELECT r.name
+                            FROM activity_submission_resources as asr
+                            JOIN resources r ON asr.resource_id = r.id
+                            WHERE asr.activity_submission_id = a.id
+                        ) AS resources_used,
+                                ARRAY(
+                                    SELECT e.name
+                            FROM activity_submission_equipment as ase
+                            JOIN equipment e ON ase.equipment_id = e.id
+                            WHERE ase.activity_submission_id = a.id
+                        ) AS equipment_used
+                            FROM activity_submissions a
+                                     LEFT JOIN users u ON a.submitted_by = u.id
+                            WHERE a.incident_report = TRUE
+                            ORDER BY a.activity_date DESC, a.id DESC
+                            ''')
+                incidents = cur.fetchall()
+    except Exception as e:
+        print(f"Error fetching incidents: {e}")
+        flash('Could not fetch incidents records.', 'error')
+        incidents = []
+
+    return render_template('incidents.html', incidents=incidents)
+
 if __name__ == '__main__':
     app.run(debug=True)
 

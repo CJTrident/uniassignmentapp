@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Incidents</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Lofi Mono Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;600&family=Montserrat:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #181c20;
+            --bg-soft: #23262b;
+            --bg-card: #242830;
+            --highlight: #ea4e55;
+            --border: #30333a;
+            --text-main: #f6f7fa;
+            --text-subtle: #a2a6ac;
+            --hover: #262a33;
+            --shadow: 0 2px 24px 0 rgba(20, 22, 28, 0.2);
+        }
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Fira Mono', 'Consolas', 'Liberation Mono', monospace;
+            margin: 0;
+        }
+        .container {
+            max-width: 1050px;
+            margin: 38px auto;
+            background: var(--bg-soft);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 32px 26px 40px 26px;
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.1rem;
+            color: var(--highlight);
+            letter-spacing: 2.7px;
+            margin-top: 0;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 9px;
+            overflow: hidden;
+            margin-bottom: 0;
+            font-size: 1rem;
+        }
+        th, td {
+            padding: 16px 14px;
+            text-align: left;
+            position: relative;
+        }
+        th {
+            background: var(--bg);
+            color: var(--highlight);
+            letter-spacing: 1px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+        tr {
+            transition: background 0.16s;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover {
+            background: var(--hover);
+        }
+        td {
+            color: var(--text-main);
+        }
+        .lofi-badge {
+            background: #1a232c;
+            color: #ea4e55;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 0.92em;
+            font-weight: 600;
+            letter-spacing: 0.7px;
+            display: inline-block;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: var(--highlight);
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: background 0.13s;
+        }
+        .back-link:hover {
+            background: var(--hover);
+        }
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--highlight);
+            font-size: 1.12em;
+            cursor: pointer;
+            padding: 0 4px;
+            vertical-align: middle;
+            margin-left: 0.15em;
+            transition: transform 0.2s;
+            outline: none;
+        }
+        .expand-btn[aria-expanded="true"] {
+            transform: rotate(90deg);
+            color: #ff7a8a;
+        }
+        .dropdown-row {
+            display: none;
+            background: #212328;
+        }
+        .dropdown-row td {
+            padding-top: 0;
+            padding-bottom: 18px;
+            color: var(--text-subtle);
+            font-size: 0.96em;
+            border-bottom: 1px solid var(--border);
+        }
+        .dropdown-details {
+            padding-left: 34px;
+            white-space: pre-line;
+        }
+        .drop-description td,
+        .drop-incident td {
+            border-top: none;
+            border-bottom: 1px solid var(--border);
+        }
+        @media (max-width: 850px) {
+            .container { padding: 12px 5px; }
+            table, thead, tbody, th, td, tr { font-size: 0.93rem; }
+            th, td { padding: 9px 6px; }
+        }
+        @media (max-width: 650px) {
+            .container { padding: 4px 0px; }
+            table, thead, tbody, th, td, tr {
+                display: block;
+                width: 100%;
+            }
+            thead { display: none; }
+            tr { margin-bottom: 23px; }
+            td {
+                padding: 7px 14px;
+                text-align: right;
+                position: relative;
+            }
+            td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: 600;
+                color: var(--highlight);
+                text-transform: uppercase;
+                font-size: 0.75em;
+            }
+            .dropdown-details {
+                padding-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back-link" href="{{ url_for('dashboard') }}">&#8678; Dashboard</a>
+    <h1>Incidents <span class="lofi-badge">Lofi</span></h1>
+    <table>
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>Shift</th>
+            <th>Activity Type</th>
+            <th>Description</th>
+            <th>Resources</th>
+            <th>Equipment</th>
+            <th>Workers</th>
+            <th>Location</th>
+            <th>Incident Details</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% set incident_activities = activities | selectattr('incident_details') | list %}
+        {% for a in incident_activities %}
+            <tr>
+                <td data-label="Date">{{ a.activity_date }}</td>
+                <td data-label="Shift">{{ a.shift }}</td>
+                <td data-label="Activity Type">{{ a.activity_type }}</td>
+                <td data-label="Description">
+                    {{ a.description|truncate(50, True, '...') if a.description else '-' }}
+                    {% if a.description %}
+                        <button class="expand-btn" aria-expanded="false" title="Show description details" onclick="toggleDropdown(this, 'desc{{ loop.index0 }}')">&#9654;</button>
+                    {% endif %}
+                </td>
+                <td data-label="Resources">
+                    {% if a.resources_used %}
+                        {{ a.resources_used|join(', ') }}
+                    {% else %}-{% endif %}
+                </td>
+                <td data-label="Equipment">
+                    {% if a.equipment_used %}
+                        {{ a.equipment_used|join(', ') }}
+                    {% else %}-{% endif %}
+                </td>
+                <td data-label="Workers">{{ a.manpower_count or '-' }}</td>
+                <td data-label="Location">{{ a.location or '-' }}</td>
+                <td data-label="Incident Details">
+                    <button class="expand-btn" aria-expanded="false" title="Show incident details" onclick="toggleDropdown(this, 'inci{{ loop.index0 }}')">&#9654;</button>
+                </td>
+            </tr>
+            <!-- Description dropdown -->
+            {% if a.description %}
+                <tr class="dropdown-row drop-description" id="desc{{ loop.index0 }}">
+                    <td colspan="9" class="dropdown-details">
+                        <strong>Description:</strong><br>{{ a.description }}
+                    </td>
+                </tr>
+            {% endif %}
+            <!-- Incident dropdown -->
+            <tr class="dropdown-row drop-incident" id="inci{{ loop.index0 }}">
+                <td colspan="9" class="dropdown-details">
+                    <strong>Incident Details:</strong><br>
+                    {{ a.incident_details }}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="9" style="text-align:center;color:#888;padding:2em;">
+                    No incidents reported yet.
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    function toggleDropdown(button, rowId) {
+        const row = document.getElementById(rowId);
+        const expanded = button.getAttribute('aria-expanded') === "true";
+        const parentTr = button.closest('tr');
+        const match = rowId.match(/\d+$/);
+        const recordId = match ? match[0] : '';
+        // For this row, hide both dropdown rows (description & incident)
+        ['desc' + recordId, 'inci' + recordId].forEach(ID => {
+            const dropRow = document.getElementById(ID);
+            if (dropRow) dropRow.style.display = 'none';
+            if (!expanded) {
+                const buttons = parentTr.querySelectorAll('button.expand-btn');
+                buttons.forEach(b => b.setAttribute('aria-expanded','false'));
+            }
+        });
+
+        if (!expanded) {
+            row.style.display = 'table-row';
+            button.setAttribute('aria-expanded', 'true');
+        }
+    }
+</script>
+</body>
+</html>
