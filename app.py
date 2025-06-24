@@ -274,6 +274,37 @@ def initialize_tables():
                                 status VARCHAR(50) NOT NULL DEFAULT 'Available'
                                 );
                             ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_submissions (
+                                                                                id SERIAL PRIMARY KEY,
+                                                                                submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                                activity_date DATE NOT NULL,
+                                activity_type VARCHAR(100) NOT NULL,
+                                description TEXT,
+                                shift VARCHAR(20) NOT NULL,
+                                shift_start TIME NOT NULL,
+                                shift_end TIME NOT NULL,
+                                location VARCHAR(255),
+                                manpower_count INTEGER,
+                                incident_report BOOLEAN DEFAULT FALSE,
+                                incident_details TEXT,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_submission_resources (
+                                                                                         activity_submission_id INTEGER REFERENCES activity_submissions(id) ON DELETE CASCADE,
+                                resource_id INTEGER REFERENCES resources(id) ON DELETE CASCADE,
+                                PRIMARY KEY (activity_submission_id, resource_id)
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_submission_equipment (
+                                                                                         activity_submission_id INTEGER REFERENCES activity_submissions(id) ON DELETE CASCADE,
+                                equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE,
+                                PRIMARY KEY (activity_submission_id, equipment_id)
+                                );
+                            ''')
                 conn.commit()
         print("Database tables initialized successfully!")
     except Exception as e:
@@ -321,6 +352,102 @@ def add_equipment():
         print(f"Add equipment error: {e}")
         flash('Failed to add equipment.', 'error')
     return redirect(url_for('admin'))
+
+#############################################
+# Activity Submission
+#############################################
+
+@app.route('/submit_activity', methods=['GET', 'POST'])
+def submit_activity():
+    if 'email' not in session:
+        flash('Please log in to submit an activity.', 'error')
+        return redirect(url_for('login'))
+
+    # Fetch resources and equipment for the select fields
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT id, name FROM resources ORDER BY name;')
+                resources = cur.fetchall()
+                cur.execute('SELECT id, name FROM equipment ORDER BY name;')
+                equipment_list = cur.fetchall()
+    except Exception as e:
+        print(f"Error fetching resources/equipment: {e}")
+        flash('Failed to load activity submission form.', 'error')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        # Collect fields
+        submitted_by = session.get('user_id')
+        activity_date = request.form.get('activity_date')
+        activity_type = request.form.get('activity_type', '').strip()
+        description = request.form.get('description', '').strip()
+        shift = request.form.get('shift', '').strip()
+        shift_start = request.form.get('shift_start')
+        shift_end = request.form.get('shift_end')
+        manpower_count = request.form.get('manpower_count')
+        location = request.form.get('location', '').strip()
+        incident_report = request.form.get('incident_report')
+        incident_details = request.form.get('incident_details', '').strip()
+
+        # Convert checkbox
+        incident_report_bool = True if incident_report else False
+        manpower_count_int = int(manpower_count) if manpower_count else None
+
+        # Multiple selects:
+        resources_used_ids = request.form.getlist('resources_used')
+        equipment_used_ids = request.form.getlist('equipment_used')
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Insert into main activity_submissions table
+                    cur.execute('''
+                                INSERT INTO activity_submissions (
+                                    submitted_by, activity_date, activity_type, description,
+                                    shift, shift_start, shift_end, location, manpower_count,
+                                    incident_report, incident_details
+                                ) VALUES (
+                                             %s, %s, %s, %s,
+                                             %s, %s, %s, %s, %s,
+                                             %s, %s
+                                         ) RETURNING id
+                                ''', (
+                                    submitted_by, activity_date, activity_type, description,
+                                    shift, shift_start, shift_end, location, manpower_count_int,
+                                    incident_report_bool, incident_details if incident_report_bool else None
+                                ))
+                    activity_submission_id = cur.fetchone()['id']
+
+                    # Resources relationship
+                    for resource_id in resources_used_ids:
+                        cur.execute(
+                            'INSERT INTO activity_submission_resources (activity_submission_id, resource_id) VALUES (%s, %s)',
+                            (activity_submission_id, int(resource_id))
+                        )
+
+                    # Equipment relationship
+                    for equipment_id in equipment_used_ids:
+                        cur.execute(
+                            'INSERT INTO activity_submission_equipment (activity_submission_id, equipment_id) VALUES (%s, %s)',
+                            (activity_submission_id, int(equipment_id))
+                        )
+
+                    # Optionally, increment user's submissions count:
+                    cur.execute('UPDATE users SET submissions = submissions + 1 WHERE id = %s', (submitted_by, ))
+                    conn.commit()
+
+            flash('Activity submitted successfully!', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            print(f"Error submitting activity: {e}")
+            flash('Failed to submit activity, please try again.', 'error')
+            # Let the user try again with the same lists!
+            return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list)
+
+    # GET: render the form
+    return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list)
 
 if __name__ == '__main__':
     app.run(debug=True)

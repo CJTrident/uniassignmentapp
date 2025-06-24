@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Submit New Construction Activity</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            background: #181818;
+            color: #fafafa;
+            font-family: monospace, Consolas, "Liberation Mono", Courier, monospace;
+            margin: 0; padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 3rem auto;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 7px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 2px 20px #0005;
+        }
+        h1 {
+            margin-bottom: 1.3em;
+            font-size: 1.7em;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+        label {
+            display: block;
+            margin-top: 1.3em;
+            font-size: 1em;
+            color: #bdbdbd;
+        }
+        input, textarea, select {
+            width: 100%;
+            background: #181a1b;
+            color: #eaeaea;
+            border: 1px solid #363a3a;
+            border-radius: 4px;
+            padding: 0.65em 0.9em;
+            margin-top: 0.4em;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 6px;
+        }
+        button {
+            margin-top: 1.5em;
+            width: 100%;
+            background: #111;
+            color: #fff;
+            border: none;
+            padding: 1em;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background .1s;
+        }
+        button:hover { background: #333; }
+        ::placeholder { color: #787878; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Submit New Site Activity</h1>
+    <form action="{{ url_for('submit_activity') }}" method="POST">
+        <label for="activity_date">Date</label>
+        <input type="date" id="activity_date" name="activity_date" required>
+
+        <label for="shift">Shift</label>
+        <select id="shift" name="shift" required>
+            <option value="">Select Shift</option>
+            <option value="Day">Day</option>
+            <option value="Night">Night</option>
+            <option value="Swing">Swing</option>
+        </select>
+
+        <label for="shift_start">Shift Start</label>
+        <input type="time" id="shift_start" name="shift_start" required>
+
+        <label for="shift_end">Shift End</label>
+        <input type="time" id="shift_end" name="shift_end" required>
+
+        <label for="activity_type">Activity Type</label>
+        <input type="text" id="activity_type" name="activity_type" placeholder="e.g., Concrete Pour, Safety Inspection" required>
+
+        <label for="description">Description / Notes</label>
+        <textarea id="description" name="description" rows="3" placeholder="Brief description"></textarea>
+
+        <label for="resources_used">Resources Used</label>
+        <select id="resources_used" name="resources_used" multiple size="4">
+            {% for resource in resources %}
+                <option value="{{ resource.id }}">{{ resource.name }}</option>
+            {% endfor %}
+        </select>
+        <small style="color:#888;">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</small>
+
+        <label for="equipment_used">Equipment Used</label>
+        <select id="equipment_used" name="equipment_used" multiple size="4">
+            {% for eq in equipment_list %}
+                <option value="{{ eq.id }}">{{ eq.name }}</option>
+            {% endfor %}
+        </select>
+        <small style="color:#888;">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</small>
+
+        <label for="manpower_count">Workers Involved</label>
+        <input type="number" id="manpower_count" name="manpower_count" min="1" placeholder="e.g., 5">
+
+        <label for="location">Location / Section</label>
+        <input type="text" id="location" name="location" placeholder="e.g., North Wing, Zone C">
+
+        <label>
+            <input type="checkbox" id="incident_report" name="incident_report" value="1">
+            Incident Occurred?
+        </label>
+
+        <label for="incident_details">Incident Details</label>
+        <textarea id="incident_details" name="incident_details" rows="2" placeholder="If incident, provide details"></textarea>
+
+        <button type="submit">Submit Activity</button>
+    </form>
+</div>
+</body>
+</html>
+
+
