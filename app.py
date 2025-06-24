@@ -207,6 +207,38 @@ def delete_user(user_id):
         flash('Failed to delete user.', 'error')
     return redirect(url_for('admin'))
 
+@app.route('/delete_resource/<int:resource_id>', methods=['POST'])
+def delete_resource(resource_id):
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM resources WHERE id = %s', (resource_id,))
+                conn.commit()
+        flash('Resource deleted.', 'success')
+    except Exception as e:
+        print(f"Delete resource error: {e}")
+        flash('Failed to delete resource.', 'error')
+    return redirect(url_for('admin'))
+
+@app.route('/delete_equipment/<int:equipment_id>', methods=['POST'])
+def delete_equipment(equipment_id):
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM equipment WHERE id = %s', (equipment_id,))
+                conn.commit()
+        flash('Equipment deleted.', 'success')
+    except Exception as e:
+        print(f"Delete equipment error: {e}")
+        flash('Failed to delete equipment.', 'error')
+    return redirect(url_for('admin'))
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -239,7 +271,7 @@ def initialize_tables():
                             CREATE TABLE IF NOT EXISTS equipment (
                                                                      id SERIAL PRIMARY KEY,
                                                                      name VARCHAR(100) NOT NULL,
-                                status VARCHAR(50) NOT NULL
+                                status VARCHAR(50) NOT NULL DEFAULT 'Available'
                                 );
                             ''')
                 conn.commit()
@@ -274,15 +306,15 @@ def add_equipment():
     if 'email' not in session or session.get('permission_level') != 'Admin':
         flash('Unauthorized', 'error')
         return redirect(url_for('dashboard'))
-    # Get equipment data from form (adjust as needed)
     name = request.form.get('name', '').strip()
+    status = request.form.get('status', '').strip() or 'Available'
     if not name:
         flash('Equipment name required!', 'error')
         return redirect(url_for('admin'))
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute('INSERT INTO equipment (name) VALUES (%s)', (name,))
+                cur.execute('INSERT INTO equipment (name, status) VALUES (%s, %s)', (name, status))
                 conn.commit()
         flash('Equipment added!', 'success')
     except Exception as e:
