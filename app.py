@@ -269,6 +269,27 @@ def add_resource():
         flash('Failed to add resource.', 'error')
     return redirect(url_for('admin'))
 
+@app.route('/add_equipment', methods=['POST'])
+def add_equipment():
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    # Get equipment data from form (adjust as needed)
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Equipment name required!', 'error')
+        return redirect(url_for('admin'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO equipment (name) VALUES (%s)', (name,))
+                conn.commit()
+        flash('Equipment added!', 'success')
+    except Exception as e:
+        print(f"Add equipment error: {e}")
+        flash('Failed to add equipment.', 'error')
+    return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     app.run(debug=True)
 
