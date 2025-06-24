@@ -191,6 +191,22 @@ def admin():
         flash("Failed to load admin dashboard.", "error")
         return render_template('admin.html', users=[], resources=[], equipment_list=[])
 
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM users WHERE id = %s', (user_id,))
+                conn.commit()
+        flash('User deleted.', 'success')
+    except Exception as e:
+        print(f"Delete user error: {e}")
+        flash('Failed to delete user.', 'error')
+    return redirect(url_for('admin'))
+
 @app.route('/logout')
 def logout():
     session.clear()
