@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Total Activities</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Lofi Mono Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;600&family=Montserrat:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #181c20;
+            --bg-soft: #23262b;
+            --bg-card: #242830;
+            --highlight: #57b2fb;
+            --border: #30333a;
+            --text-main: #f6f7fa;
+            --text-subtle: #a2a6ac;
+            --hover: #262a33;
+            --shadow: 0 2px 24px 0 rgba(20, 22, 28, 0.2);
+        }
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Fira Mono', 'Consolas', 'Liberation Mono', monospace;
+            margin: 0;
+        }
+        .container {
+            max-width: 1050px;
+            margin: 38px auto;
+            background: var(--bg-soft);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 32px 26px 40px 26px;
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.1rem;
+            color: var(--highlight);
+            letter-spacing: 2.7px;
+            margin-top: 0;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 9px;
+            overflow: hidden;
+            margin-bottom: 0;
+            font-size: 1rem;
+        }
+        th, td {
+            padding: 16px 14px;
+            text-align: left;
+        }
+        th {
+            background: var(--bg);
+            color: var(--highlight);
+            letter-spacing: 1px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+        tr {
+            transition: background 0.16s;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover {
+            background: var(--hover);
+        }
+        td {
+            color: var(--text-main);
+        }
+        .lofi-badge {
+            background: #1a232c;
+            color: #8ad9ff;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 0.92em;
+            font-weight: 600;
+            letter-spacing: 0.7px;
+            display: inline-block;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: var(--highlight);
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: background 0.13s;
+        }
+        .back-link:hover {
+            background: var(--hover);
+        }
+        @media (max-width: 850px) {
+            .container { padding: 12px 5px; }
+            table, thead, tbody, th, td, tr { font-size: 0.93rem; }
+            th, td { padding: 9px 6px; }
+        }
+        @media (max-width: 650px) {
+            .container { padding: 4px 0px; }
+            table, thead, tbody, th, td, tr {
+                display: block;
+                width: 100%;
+            }
+            thead { display: none; }
+            tr { margin-bottom: 23px; }
+            td {
+                padding: 7px 14px;
+                text-align: right;
+                position: relative;
+            }
+            td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: 600;
+                color: var(--highlight);
+                text-transform: uppercase;
+                font-size: 0.75em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="back-link" href="{{ url_for('dashboard') }}">&#8678; Dashboard</a>
+        <h1>Total Activities <span class="lofi-badge">Lofi</span></h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Activity Type</th>
+                    <th>Description</th>
+                    <th>Resources</th>
+                    <th>Equipment</th>
+                    <th>Workers</th>
+                    <th>Location</th>
+                    <th>Incident?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in activities %}
+                <tr>
+                    <td data-label="Date">{{ a.activity_date }}</td>
+                    <td data-label="Shift">{{ a.shift }}</td>
+                    <td data-label="Activity Type">{{ a.activity_type }}</td>
+                    <td data-label="Description">{{ a.description }}</td>
+                    <td data-label="Resources">
+                        {% if a.resources_used %}
+                            {{ a.resources_used|join(', ') }}
+                        {% else %}-{% endif %}
+                    </td>
+                    <td data-label="Equipment">
+                        {% if a.equipment_used %}
+                            {{ a.equipment_used|join(', ') }}
+                        {% else %}-{% endif %}
+                    </td>
+                    <td data-label="Workers">{{ a.manpower_count or '-' }}</td>
+                    <td data-label="Location">{{ a.location or '-' }}</td>
+                    <td data-label="Incident?">{% if a.incident_report %}<span style="color:#ea4e55;">Yes</span>{% else %}No{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align:center;color:#888;padding:2em;">
+                        No activities submitted yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

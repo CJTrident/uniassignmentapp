@@ -22,7 +22,6 @@
             top: 0;
             width: 250px;
             z-index: 100;
-            /* Ensure side nav is always on top */
         }
 
         .main-content {
@@ -31,7 +30,6 @@
             overflow-x: hidden;
         }
 
-        /* Prevent content/cards from overlapping sidebar */
         .row {
             margin-right: 0 !important;
             margin-left: 0 !important;
@@ -49,6 +47,16 @@
             transform: translateY(-5px);
         }
 
+        .stats-card.clickable {
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .stats-card.clickable:active {
+            box-shadow: 0 2px 12px rgba(50, 150, 250, 0.075);
+            transform: scale(0.99);
+        }
+
         .list-group-item {
             background-color: transparent;
             border: none;
@@ -59,7 +67,8 @@
             transition: background-color 0.3s;
         }
 
-        .list-group-item:hover {
+        .list-group-item:hover,
+        .list-group-item:focus {
             background-color: #404040;
             color: #ffffff;
         }
@@ -97,7 +106,7 @@
         }
 
         .stats-card .card-title {
-            color: #e0e0e0;  /* Lighter text color for titles */
+            color: #e0e0e0;
             font-size: 1.1rem;
             font-weight: 500;
         }
@@ -105,11 +114,11 @@
         .stats-value {
             font-size: 2.5rem;
             font-weight: bold;
-            color: #ffffff;  /* Brighter white for the numbers */
+            color: #ffffff;
         }
 
         .card-text {
-            color: #d0d0d0 !important;  /* Lighter color for the percentage text */
+            color: #d0d0d0 !important;
         }
 
         .floating-action-btn {
@@ -154,7 +163,6 @@
             opacity: 1;
         }
 
-        /* Fix cards overflowing horizontally at smaller breakpoints and prevent horizontal scroll */
         @media (max-width: 991.98px) {
             .main-content {
                 margin-left: 0;
@@ -168,7 +176,6 @@
             }
         }
 
-        /* Prevent horizontal scrolling */
         html, body {
             overflow-x: hidden;
         }
@@ -208,6 +215,9 @@
                 <a href="#" class="list-group-item list-group-item-action">
                     <i class="bi bi-gear me-2"></i>Settings
                 </a>
+                <a href="/total_activities" class="list-group-item list-group-item-action">
+                    <i class="bi bi-list-check me-2"></i>Total Activities
+                </a>
                 <a href="admin" class="list-group-item list-group-item-action">
                     <i class="bi bi-shield-lock me-2"></i>Admin Panel
                 </a>
@@ -221,7 +231,7 @@
             <!-- Stats Cards -->
             <div class="row mt-4 g-3">
                 <div class="col-md-4">
-                    <div class="card stats-card mb-4">
+                    <div class="card stats-card clickable mb-4" onclick="window.location.href='/total_activities'">
                         <div class="card-body">
                             <h5 class="card-title">Total Activities</h5>
                             <p class="stats-value">150</p>
