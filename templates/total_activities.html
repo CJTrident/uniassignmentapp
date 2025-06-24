@@ -126,53 +126,69 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <a class="back-link" href="{{ url_for('dashboard') }}">&#8678; Dashboard</a>
-        <h1>Total Activities <span class="lofi-badge">Lofi</span></h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Shift</th>
-                    <th>Activity Type</th>
-                    <th>Description</th>
-                    <th>Resources</th>
-                    <th>Equipment</th>
-                    <th>Workers</th>
-                    <th>Location</th>
-                    <th>Incident?</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for a in activities %}
-                <tr>
-                    <td data-label="Date">{{ a.activity_date }}</td>
-                    <td data-label="Shift">{{ a.shift }}</td>
-                    <td data-label="Activity Type">{{ a.activity_type }}</td>
-                    <td data-label="Description">{{ a.description }}</td>
-                    <td data-label="Resources">
-                        {% if a.resources_used %}
-                            {{ a.resources_used|join(', ') }}
-                        {% else %}-{% endif %}
-                    </td>
-                    <td data-label="Equipment">
-                        {% if a.equipment_used %}
-                            {{ a.equipment_used|join(', ') }}
-                        {% else %}-{% endif %}
-                    </td>
-                    <td data-label="Workers">{{ a.manpower_count or '-' }}</td>
-                    <td data-label="Location">{{ a.location or '-' }}</td>
-                    <td data-label="Incident?">{% if a.incident_report %}<span style="color:#ea4e55;">Yes</span>{% else %}No{% endif %}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="9" style="text-align:center;color:#888;padding:2em;">
-                        No activities submitted yet.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="container">
+    <a class="back-link" href="{{ url_for('dashboard') }}">&#8678; Dashboard</a>
+    <h1>Total Activities <span class="lofi-badge">Lofi</span></h1>
+    <table>
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>Shift</th>
+            <th>Activity Type</th>
+            <th>Description</th>
+            <th>Resources</th>
+            <th>Equipment</th>
+            <th>Workers</th>
+            <th>Location</th>
+            <th>Incident?</th>
+            <th>Incident Details</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for a in activities %}
+            <tr>
+                <td data-label="Date">{{ a.activity_date }}</td>
+                <td data-label="Shift">{{ a.shift }}</td>
+                <td data-label="Activity Type">{{ a.activity_type }}</td>
+                <td data-label="Description">{{ a.description }}</td>
+                <td data-label="Resources">
+                    {% if a.resources_used %}
+                        {{ a.resources_used|join(', ') }}
+                    {% else %}-{% endif %}
+                </td>
+                <td data-label="Equipment">
+                    {% if a.equipment_used %}
+                        {{ a.equipment_used|join(', ') }}
+                    {% else %}-{% endif %}
+                </td>
+                <td data-label="Workers">{{ a.manpower_count or '-' }}</td>
+                <td data-label="Location">{{ a.location or '-' }}</td>
+                <td data-label="Incident?">
+                    {% if a.incident_report %}
+                        <span style="color:#ea4e55;">Yes</span>
+                    {% else %}
+                        No
+                    {% endif %}
+                </td>
+                <td data-label="Incident Details">
+                    {% if a.incident_report and a.incident_report.details %}
+                        {{ a.incident_report.details }}
+                    {% elif a.incident_report %}
+                        Details not specified
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="10" style="text-align:center;color:#888;padding:2em;">
+                    No activities submitted yet.
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 </body>
 </html>
