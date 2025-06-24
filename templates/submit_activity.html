@@ -47,8 +47,12 @@
             width: auto;
             margin-right: 6px;
         }
-        button {
+        .button-row {
+            display: flex;
+            gap: 1rem;
             margin-top: 1.5em;
+        }
+        button, .cancel-btn {
             width: 100%;
             background: #111;
             color: #fff;
@@ -58,8 +62,11 @@
             font-size: 1.1em;
             cursor: pointer;
             transition: background .1s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
         }
-        button:hover { background: #333; }
+        button:hover, .cancel-btn:hover { background: #333; }
         ::placeholder { color: #787878; }
     </style>
 </head>
@@ -79,10 +86,38 @@
         </select>
 
         <label for="shift_start">Shift Start</label>
-        <input type="time" id="shift_start" name="shift_start" required>
+        <select id="shift_start" name="shift_start" required>
+            <option value="">Select Start Time</option>
+            <option value="06:00">06:00 AM</option>
+            <option value="07:00">07:00 AM</option>
+            <option value="08:00">08:00 AM</option>
+            <option value="09:00">09:00 AM</option>
+            <option value="10:00">10:00 AM</option>
+            <option value="11:00">11:00 AM</option>
+            <option value="12:00">12:00 PM</option>
+            <option value="13:00">01:00 PM</option>
+            <option value="14:00">02:00 PM</option>
+            <option value="15:00">03:00 PM</option>
+            <option value="16:00">04:00 PM</option>
+            <option value="17:00">05:00 PM</option>
+        </select>
 
         <label for="shift_end">Shift End</label>
-        <input type="time" id="shift_end" name="shift_end" required>
+        <select id="shift_end" name="shift_end" required>
+            <option value="">Select End Time</option>
+            <option value="14:00">02:00 PM</option>
+            <option value="15:00">03:00 PM</option>
+            <option value="16:00">04:00 PM</option>
+            <option value="17:00">05:00 PM</option>
+            <option value="18:00">06:00 PM</option>
+            <option value="19:00">07:00 PM</option>
+            <option value="20:00">08:00 PM</option>
+            <option value="21:00">09:00 PM</option>
+            <option value="22:00">10:00 PM</option>
+            <option value="23:00">11:00 PM</option>
+            <option value="00:00">12:00 AM</option>
+            <option value="01:00">01:00 AM</option>
+        </select>
 
         <label for="activity_type">Activity Type</label>
         <input type="text" id="activity_type" name="activity_type" placeholder="e.g., Concrete Pour, Safety Inspection" required>
@@ -120,10 +155,11 @@
         <label for="incident_details">Incident Details</label>
         <textarea id="incident_details" name="incident_details" rows="2" placeholder="If incident, provide details"></textarea>
 
-        <button type="submit">Submit Activity</button>
+        <div class="button-row">
+            <button type="submit">Submit Activity</button>
+            <a href="{{ url_for('dashboard') }}" class="cancel-btn">Cancel</a>
+        </div>
     </form>
 </div>
 </body>
 </html>
-
-
