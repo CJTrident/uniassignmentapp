@@ -210,7 +210,7 @@
                 <td data-label="Workers">{{ a.manpower_count or '-' }}</td>
                 <td data-label="Location">{{ a.location or '-' }}</td>
                 <td data-label="Incident?">
-                    {% if a.incident_report %}
+                    {% if a.incident_details %}
                         <span style="color:#ea4e55;">Yes</span>
                         <button class="expand-btn" aria-expanded="false" title="Show incident details" onclick="toggleDropdown(this, 'inci{{ loop.index0 }}')">&#9654;</button>
                     {% else %}
@@ -227,15 +227,11 @@
                 </tr>
             {% endif %}
             <!-- Incident dropdown -->
-            {% if a.incident_report %}
+            {% if a.incident_details %}
                 <tr class="dropdown-row drop-incident" id="inci{{ loop.index0 }}">
                     <td colspan="9" class="dropdown-details">
                         <strong>Incident Details:</strong><br>
-                        {% if a.incident_report.details %}
-                            {{ a.incident_report.details }}
-                        {% else %}
-                            Details not specified
-                        {% endif %}
+                        {{ a.incident_details }}
                     </td>
                 </tr>
             {% endif %}
@@ -253,17 +249,19 @@
     function toggleDropdown(button, rowId) {
         const row = document.getElementById(rowId);
         const expanded = button.getAttribute('aria-expanded') === "true";
-        // Collapse any open dropdown in this row
         const parentTr = button.closest('tr');
-        // Find all expand-btn in this row for aria update
-        const expandBtns = parentTr.querySelectorAll('button.expand-btn');
-        expandBtns.forEach(b => b.setAttribute('aria-expanded', 'false'));
-
-        // Hide all dropdown rows for this record
-        const recordId = rowId.match(/\d+$/)[0];
+        // Find this row's index from the dropdown id
+        const match = rowId.match(/\d+$/);
+        const recordId = match ? match[0] : '';
+        // Hide both dropdown rows for this record first
         ['desc' + recordId, 'inci' + recordId].forEach(ID => {
             const dropRow = document.getElementById(ID);
             if (dropRow) dropRow.style.display = 'none';
+            // Also find any button in this main row and collapse
+            if (!expanded) {
+                const buttons = parentTr.querySelectorAll('button.expand-btn');
+                buttons.forEach(b => b.setAttribute('aria-expanded','false'));
+            }
         });
 
         if (!expanded) {
