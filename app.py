@@ -500,7 +500,6 @@ def total_activities():
         activities = []
     return render_template('total_activities.html', activities=activities)
 
-# Add this route below the last route in your file (before the if __name__ == '__main__' line)
 #############################################
 # Incidents Route
 #############################################
