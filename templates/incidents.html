@@ -7,7 +7,142 @@
     <!-- Lofi Mono Font -->
     <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;600&family=Montserrat:wght@600&display=swap" rel="stylesheet">
     <style>
-        /* your existing CSS here (unchanged) */
+        :root {
+            --bg: #181c20;
+            --bg-soft: #23262b;
+            --bg-card: #242830;
+            --highlight: #ea4e55;
+            --border: #30333a;
+            --text-main: #f6f7fa;
+            --text-subtle: #a2a6ac;
+            --hover: #262a33;
+            --shadow: 0 2px 24px 0 rgba(20, 22, 28, 0.2);
+        }
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Fira Mono', 'Consolas', 'Liberation Mono', monospace;
+            margin: 0;
+        }
+        .container {
+            max-width: 700px;
+            margin: 38px auto;
+            background: var(--bg-soft);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 32px 26px 40px 26px;
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.1rem;
+            color: var(--highlight);
+            letter-spacing: 2.7px;
+            margin-top: 0;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 9px;
+            overflow: hidden;
+            margin-bottom: 0;
+            font-size: 1rem;
+        }
+        th, td {
+            padding: 16px 14px;
+            text-align: left;
+            position: relative;
+        }
+        th {
+            background: var(--bg);
+            color: var(--highlight);
+            letter-spacing: 1px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+        tr {
+            transition: background 0.16s;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover {
+            background: var(--hover);
+        }
+        td {
+            color: var(--text-main);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: var(--highlight);
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: background 0.13s;
+        }
+        .back-link:hover {
+            background: var(--hover);
+        }
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--highlight);
+            font-size: 1.12em;
+            cursor: pointer;
+            padding: 0 4px;
+            vertical-align: middle;
+            margin-left: 0.15em;
+            transition: transform 0.2s;
+            outline: none;
+        }
+        .expand-btn[aria-expanded="true"] {
+            transform: rotate(90deg);
+            color: #ff7a8a;
+        }
+        .dropdown-row {
+            display: none;
+            background: #212328;
+        }
+        .dropdown-row td {
+            padding-top: 0;
+            padding-bottom: 18px;
+            color: var(--text-subtle);
+            font-size: 0.96em;
+            border-bottom: 1px solid var(--border);
+        }
+        .dropdown-details {
+            padding-left: 34px;
+            white-space: pre-line;
+        }
+        @media (max-width: 650px) {
+            .container { padding: 4px 0px; }
+            table, thead, tbody, th, td, tr {
+                display: block;
+                width: 100%;
+            }
+            thead { display: none; }
+            tr { margin-bottom: 23px; }
+            td {
+                padding: 7px 14px;
+                text-align: right;
+                position: relative;
+            }
+            td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: 600;
+                color: var(--highlight);
+                text-transform: uppercase;
+                font-size: 0.75em;
+            }
+            .dropdown-details {
+                padding-left: 0;
+            }
+        }
     </style>
 </head>
 <body>
