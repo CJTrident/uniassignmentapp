@@ -53,6 +53,7 @@
         th, td {
             padding: 16px 14px;
             text-align: left;
+            position: relative;
         }
         th {
             background: var(--bg);
@@ -96,6 +97,43 @@
         .back-link:hover {
             background: var(--hover);
         }
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--highlight);
+            font-size: 1.12em;
+            cursor: pointer;
+            padding: 0 4px;
+            vertical-align: middle;
+            margin-left: 0.15em;
+            transition: transform 0.2s;
+            outline: none;
+        }
+        .expand-btn[aria-expanded="true"] {
+            transform: rotate(90deg);
+            color: #8ad9ff;
+        }
+        .dropdown-row {
+            display: none;
+            background: #212328;
+        }
+        .dropdown-row td {
+            padding-top: 0;
+            padding-bottom: 18px;
+            color: var(--text-subtle);
+            font-size: 0.96em;
+            border-bottom: 1px solid var(--border);
+        }
+        .dropdown-details {
+            padding-left: 34px;
+            white-space: pre-line;
+        }
+        /* Always span all columns so the details fit nicely */
+        .drop-description td,
+        .drop-incident td {
+            border-top: none;
+            border-bottom: 1px solid var(--border);
+        }
         @media (max-width: 850px) {
             .container { padding: 12px 5px; }
             table, thead, tbody, th, td, tr { font-size: 0.93rem; }
@@ -122,6 +160,9 @@
                 text-transform: uppercase;
                 font-size: 0.75em;
             }
+            .dropdown-details {
+                padding-left: 0;
+            }
         }
     </style>
 </head>
@@ -141,16 +182,21 @@
             <th>Workers</th>
             <th>Location</th>
             <th>Incident?</th>
-            <th>Incident Details</th>
         </tr>
         </thead>
         <tbody>
         {% for a in activities %}
+            <!-- Main row -->
             <tr>
                 <td data-label="Date">{{ a.activity_date }}</td>
                 <td data-label="Shift">{{ a.shift }}</td>
                 <td data-label="Activity Type">{{ a.activity_type }}</td>
-                <td data-label="Description">{{ a.description }}</td>
+                <td data-label="Description">
+                    {{ a.description|truncate(50, True, '...') }}
+                    {% if a.description and (a.description|length > 50) %}
+                        <button class="expand-btn" aria-expanded="false" title="Show more" onclick="toggleDropdown(this, 'desc{{ loop.index0 }}')">&#9654;</button>
+                    {% endif %}
+                </td>
                 <td data-label="Resources">
                     {% if a.resources_used %}
                         {{ a.resources_used|join(', ') }}
@@ -166,23 +212,36 @@
                 <td data-label="Incident?">
                     {% if a.incident_report %}
                         <span style="color:#ea4e55;">Yes</span>
+                        <button class="expand-btn" aria-expanded="false" title="Show incident details" onclick="toggleDropdown(this, 'inci{{ loop.index0 }}')">&#9654;</button>
                     {% else %}
                         No
                     {% endif %}
                 </td>
-                <td data-label="Incident Details">
-                    {% if a.incident_report and a.incident_report.details %}
-                        {{ a.incident_report.details }}
-                    {% elif a.incident_report %}
-                        Details not specified
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
             </tr>
+            <!-- Description dropdown -->
+            {% if a.description and a.description|length > 50 %}
+                <tr class="dropdown-row drop-description" id="desc{{ loop.index0 }}">
+                    <td colspan="9" class="dropdown-details">
+                        <strong>Description:</strong><br>{{ a.description }}
+                    </td>
+                </tr>
+            {% endif %}
+            <!-- Incident dropdown -->
+            {% if a.incident_report %}
+                <tr class="dropdown-row drop-incident" id="inci{{ loop.index0 }}">
+                    <td colspan="9" class="dropdown-details">
+                        <strong>Incident Details:</strong><br>
+                        {% if a.incident_report.details %}
+                            {{ a.incident_report.details }}
+                        {% else %}
+                            Details not specified
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endif %}
         {% else %}
             <tr>
-                <td colspan="10" style="text-align:center;color:#888;padding:2em;">
+                <td colspan="9" style="text-align:center;color:#888;padding:2em;">
                     No activities submitted yet.
                 </td>
             </tr>
@@ -190,5 +249,28 @@
         </tbody>
     </table>
 </div>
+<script>
+    function toggleDropdown(button, rowId) {
+        const row = document.getElementById(rowId);
+        const expanded = button.getAttribute('aria-expanded') === "true";
+        // Collapse any open dropdown in this row
+        const parentTr = button.closest('tr');
+        // Find all expand-btn in this row for aria update
+        const expandBtns = parentTr.querySelectorAll('button.expand-btn');
+        expandBtns.forEach(b => b.setAttribute('aria-expanded', 'false'));
+
+        // Hide all dropdown rows for this record
+        const recordId = rowId.match(/\d+$/)[0];
+        ['desc' + recordId, 'inci' + recordId].forEach(ID => {
+            const dropRow = document.getElementById(ID);
+            if (dropRow) dropRow.style.display = 'none';
+        });
+
+        if (!expanded) {
+            row.style.display = 'table-row';
+            button.setAttribute('aria-expanded', 'true');
+        }
+    }
+</script>
 </body>
 </html>
