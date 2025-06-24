@@ -249,6 +249,26 @@ def initialize_tables():
 
 initialize_tables()
 
+@app.route('/add_resource', methods=['POST'])
+def add_resource():
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Resource name required!', 'error')
+        return redirect(url_for('admin'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO resources (name) VALUES (%s)', (name,))
+                conn.commit()
+        flash('Resource added!', 'success')
+    except Exception as e:
+        print(f"Add resource error: {e}")
+        flash('Failed to add resource.', 'error')
+    return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     app.run(debug=True)
 
