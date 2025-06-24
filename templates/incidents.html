@@ -157,25 +157,27 @@
         </tr>
         </thead>
         <tbody>
-        {% set incident_activities = activities | selectattr('incident_details') | list %}
-        {% for a in incident_activities %}
-            <tr>
-                <td data-label="Location">{{ a.location or '-' }}</td>
-                <td data-label="Incident Details">
-                    {% if a.incident_details %}
-                        <button class="expand-btn" aria-expanded="false" title="Show incident details" onclick="toggleDropdown(this, 'inci{{ loop.index0 }}')">&#9654;</button>
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-            </tr>
+        {% for a in activities %}
             {% if a.incident_details %}
-                <tr class="dropdown-row" id="inci{{ loop.index0 }}">
-                    <td colspan="2" class="dropdown-details">
-                        <strong>Incident Details:</strong><br>
-                        {{ a.incident_details }}
+                <tr>
+                    <td data-label="Location">{{ a.location or '-' }}</td>
+                    <td data-label="Incident Details">
+                        {% if a.incident_details|length > 70 %}
+                            {{ a.incident_details[:70] }}...
+                            <button class="expand-btn" aria-expanded="false" title="Show incident details" onclick="toggleDropdown(this, 'inci{{ loop.index0 }}')">&#9654;</button>
+                        {% else %}
+                            {{ a.incident_details }}
+                        {% endif %}
                     </td>
                 </tr>
+                {% if a.incident_details|length > 70 %}
+                    <tr class="dropdown-row" id="inci{{ loop.index0 }}">
+                        <td colspan="2" class="dropdown-details">
+                            <strong>Incident Details:</strong><br>
+                            {{ a.incident_details }}
+                        </td>
+                    </tr>
+                {% endif %}
             {% endif %}
         {% else %}
             <tr>
@@ -191,7 +193,6 @@
     function toggleDropdown(button, rowId) {
         const row = document.getElementById(rowId);
         const expanded = button.getAttribute('aria-expanded') === "true";
-        // Hide all dropdown rows for this record
         if (row) row.style.display = expanded ? 'none' : 'table-row';
         button.setAttribute('aria-expanded', (!expanded).toString());
     }
