@@ -265,18 +265,14 @@
 
     <!-- Users Tab -->
     <div id="users-tab" class="tab-content active">
-        <div class="section-header">
-            <div class="search-container">
-                <input type="text"
-                       class="search-bar"
-                       placeholder="Search users..."
-                       id="searchInput"
-                       oninput="searchUsers()">
-            </div>
-            <button class="add-button" id="addUserButton">
-                <span>+</span> Add User
-            </button>
+        <div class="search-container">
+            <input type="text"
+                   class="search-bar"
+                   placeholder="Search users..."
+                   id="searchInput"
+                   oninput="searchUsers()">
         </div>
+
         <div class="gallery" id="users-gallery">
             {% for user in users %}
                 <div class="user-card">
@@ -369,27 +365,6 @@
     </div>
 </div>
 
-<!-- User Modal -->
-<div class="modal" id="addUserModal">
-    <div class="modal-content">
-        <h2>Add New User</h2>
-        <form id="addUserForm" method="post" action="{{ url_for('add_user') }}">
-            <input type="text" name="firstname" id="userFirstName" placeholder="First Name" required>
-            <input type="text" name="lastname" id="userLastName" placeholder="Last Name" required>
-            <input type="text" name="username" id="userUsername" placeholder="Username" required>
-            <input type="password" name="password" id="userPassword" placeholder="Password" required>
-            <select name="permission_level" id="userPermission" class="modal-select">
-                <option value="User">User</option>
-                <option value="Admin">Admin</option>
-            </select>
-            <div class="modal-buttons">
-                <button class="modal-button cancel-button" type="button" id="cancelUserBtn">Cancel</button>
-                <button class="modal-button confirm-button" type="submit">Add</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <!-- Resource Modal -->
 <div class="modal" id="addResourceModal">
     <div class="modal-content">
@@ -453,27 +428,8 @@
         });
     }
 
-    // Modal handlers for User, Resource and Equipment
+    // Modal handlers for Resource and Equipment
     document.addEventListener('DOMContentLoaded', function() {
-        // User Modal
-        const addUserBtn = document.getElementById('addUserButton');
-        const addUserModal = document.getElementById('addUserModal');
-        const cancelUserBtn = document.getElementById('cancelUserBtn');
-        if (addUserBtn && addUserModal) {
-            addUserBtn.onclick = function() {
-                addUserModal.style.display = 'flex';
-            };
-        }
-        if (cancelUserBtn && addUserModal) {
-            cancelUserBtn.onclick = function() {
-                addUserModal.style.display = 'none';
-                document.getElementById('addUserForm').reset();
-            };
-        }
-        addUserModal.addEventListener('click', function(e) {
-            if (e.target === addUserModal) addUserModal.style.display = 'none';
-        });
-
         // Resource Modal
         const addResourceBtn = document.getElementById('addResourceButton');
         const addResourceModal = document.getElementById('addResourceModal');
@@ -514,10 +470,9 @@
             if (e.target === addEquipmentModal) addEquipmentModal.style.display = 'none';
         });
 
-        // Esc closes all modals
+        // Esc closes both modals
         window.addEventListener('keydown', function (evt) {
             if (evt.key === "Escape") {
-                addUserModal.style.display = 'none';
                 addResourceModal.style.display = 'none';
                 addEquipmentModal.style.display = 'none';
                 hideConfirmDialog();
