@@ -179,17 +179,22 @@ def admin():
                 cur.execute('SELECT id, name, status FROM equipment')
                 equipment_list = cur.fetchall()
 
+                # Add query for locations
+                cur.execute('SELECT id, site_name, address_line_1, post_code, what3words FROM locations')
+                locations = cur.fetchall()
+
         return render_template(
             'admin.html',
             users=users,
             resources=resources,
-            equipment_list=equipment_list
+            equipment_list=equipment_list,
+            locations=locations
         )
 
     except Exception as e:
         print(f"Admin dashboard load error: {e}")
         flash("Failed to load admin dashboard.", "error")
-        return render_template('admin.html', users=[], resources=[], equipment_list=[])
+        return render_template('admin.html', users=[], resources=[], equipment_list=[], locations=[])
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
@@ -275,6 +280,15 @@ def initialize_tables():
                                 );
                             ''')
                 cur.execute('''
+                            CREATE TABLE IF NOT EXISTS locations (
+                                                                     id SERIAL PRIMARY KEY,
+                                                                     site_name VARCHAR(255) NOT NULL,
+                                address_line_1 VARCHAR(255) NOT NULL,
+                                post_code VARCHAR(20) NOT NULL,
+                                what3words VARCHAR(100) NOT NULL
+                                );
+                            ''')
+                cur.execute('''
                             CREATE TABLE IF NOT EXISTS activity_submissions (
                                                                                 id SERIAL PRIMARY KEY,
                                                                                 submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -353,6 +367,51 @@ def add_equipment():
         flash('Failed to add equipment.', 'error')
     return redirect(url_for('admin'))
 
+@app.route('/add_location', methods=['POST'])
+def add_location():
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+
+    site_name = request.form.get('site_name', '').strip()
+    address_line_1 = request.form.get('address_line_1', '').strip()
+    post_code = request.form.get('post_code', '').strip()
+    what3words = request.form.get('what3words', '').strip()
+
+    if not all([site_name, address_line_1, post_code, what3words]):
+        flash('All location fields are required!', 'error')
+        return redirect(url_for('admin'))
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'INSERT INTO locations (site_name, address_line_1, post_code, what3words) VALUES (%s, %s, %s, %s)',
+                    (site_name, address_line_1, post_code, what3words)
+                )
+                conn.commit()
+        flash('Location added!', 'success')
+    except Exception as e:
+        print(f"Add location error: {e}")
+        flash('Failed to add location.', 'error')
+    return redirect(url_for('admin'))
+
+@app.route('/delete_location/<int:location_id>', methods=['POST'])
+def delete_location(location_id):
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM locations WHERE id = %s', (location_id,))
+                conn.commit()
+        flash('Location deleted.', 'success')
+    except Exception as e:
+        print(f"Delete location error: {e}")
+        flash('Failed to delete location.', 'error')
+    return redirect(url_for('admin'))
+
 #############################################
 # Activity Submission
 #############################################
@@ -371,8 +430,11 @@ def submit_activity():
                 resources = cur.fetchall()
                 cur.execute('SELECT id, name FROM equipment ORDER BY name;')
                 equipment_list = cur.fetchall()
+                # Add locations query
+                cur.execute('SELECT id, site_name, address_line_1, post_code FROM locations ORDER BY site_name;')
+                locations = cur.fetchall()
     except Exception as e:
-        print(f"Error fetching resources/equipment: {e}")
+        print(f"Error fetching resources/equipment/locations: {e}")
         flash('Failed to load activity submission form.', 'error')
         return redirect(url_for('dashboard'))
 
@@ -444,10 +506,16 @@ def submit_activity():
             print(f"Error submitting activity: {e}")
             flash('Failed to submit activity, please try again.', 'error')
             # Let the user try again with the same lists!
-            return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list)
+            return render_template('submit_activity.html',
+                                   resources=resources,
+                                   equipment_list=equipment_list,
+                                   locations=locations)
 
     # GET: render the form
-    return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list)
+    return render_template('submit_activity.html',
+                           resources=resources,
+                           equipment_list=equipment_list,
+                           locations=locations)
 
 #############################################
 # Total Activities Route
