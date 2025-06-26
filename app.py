@@ -181,7 +181,7 @@ def admin():
 
                 # Add locations query with error handling
                 try:
-                    cur.execute('SELECT id, site_name, address_line_1, post_code, what3words FROM locations')
+                    cur.execute('SELECT id, site_name, address_line_1, postcode, what3words FROM locations')
                     locations = cur.fetchall()
                 except Exception as loc_error:
                     print(f"Locations query error: {loc_error}")
@@ -289,7 +289,7 @@ def initialize_tables():
                                                                      id SERIAL PRIMARY KEY,
                                                                      site_name VARCHAR(255) NOT NULL,
                                 address_line_1 VARCHAR(255) NOT NULL,
-                                post_code VARCHAR(20) NOT NULL,
+                                postcode VARCHAR(20) NOT NULL,
                                 what3words VARCHAR(100) NOT NULL
                                 );
                             ''')
@@ -380,10 +380,10 @@ def add_location():
 
     site_name = request.form.get('site_name', '').strip()
     address_line_1 = request.form.get('address_line_1', '').strip()
-    post_code = request.form.get('post_code', '').strip()
+    postcode = request.form.get('postcode', '').strip()
     what3words = request.form.get('what3words', '').strip()
 
-    if not all([site_name, address_line_1, post_code, what3words]):
+    if not all([site_name, address_line_1, postcode, what3words]):
         flash('All location fields are required!', 'error')
         return redirect(url_for('admin'))
 
@@ -391,8 +391,8 @@ def add_location():
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    'INSERT INTO locations (site_name, address_line_1, post_code, what3words) VALUES (%s, %s, %s, %s)',
-                    (site_name, address_line_1, post_code, what3words)
+                    'INSERT INTO locations (site_name, address_line_1, postcode, what3words) VALUES (%s, %s, %s, %s)',
+                    (site_name, address_line_1, postcode, what3words)
                 )
                 conn.commit()
         flash('Location added!', 'success')
@@ -435,7 +435,7 @@ def submit_activity():
                 resources = cur.fetchall()
                 cur.execute('SELECT id, name FROM equipment ORDER BY name;')
                 equipment_list = cur.fetchall()
-                cur.execute('SELECT id, site_name, address_line_1, post_code FROM locations ORDER BY site_name;')
+                cur.execute('SELECT id, site_name, address_line_1, postcode FROM locations ORDER BY site_name;')
                 locations = cur.fetchall()
     except Exception as e:
         print(f"Error fetching resources/equipment/locations: {e}")

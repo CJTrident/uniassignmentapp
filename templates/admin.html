@@ -375,7 +375,7 @@
                     <div class="user-info">
                         <h3>{{ location.site_name }}</h3>
                         <p>{{ location.address_line_1 }}</p>
-                        <p>Post Code: {{ location.post_code }}</p>
+                        <p>Post Code: {{ location.postcode }}</p>
                         <p>what3words: {{ location.what3words }}</p>
                     </div>
                     <form method="post" action="{{ url_for('delete_location', location_id=location.id) }}" style="margin:0;">
@@ -439,7 +439,7 @@
         <form id="addLocationForm" method="post" action="{{ url_for('add_location') }}">
             <input type="text" name="site_name" id="locationSiteName" placeholder="Site Name" required>
             <input type="text" name="address_line_1" id="locationAddress" placeholder="Address" required>
-            <input type="text" name="post_code" id="locationPostCode" placeholder="Post Code" required>
+            <input type="text" name="postcode" id="locationPostCode" placeholder="Post Code" required>
             <input type="text" name="what3words" id="locationWhat3Words" placeholder="what3words" required>
             <div class="modal-buttons">
                 <button class="modal-button cancel-button" type="button" id="cancelLocationBtn">Cancel</button>
