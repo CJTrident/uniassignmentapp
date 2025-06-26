@@ -7,6 +7,7 @@
     <!-- Lofi dark style - Google Fonts & CSS reset -->
     <link href="https://fonts.googleapis.com/css2?family=Fira+Mono&family=Montserrat:wght@600&display=swap" rel="stylesheet">
     <style>
+        /* [Unchanged styles from your snippet above...] */
         :root {
             --bg: #181c20;
             --bg-soft: #23262b;
@@ -65,7 +66,6 @@
         .back-button:hover {
             color: #8ad9ff;
         }
-
         .tabs {
             display: flex;
             gap: 16px;
@@ -137,7 +137,6 @@
         .search-bar:focus {
             border-color: var(--highlight);
         }
-
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -261,6 +260,7 @@
         <button class="tab-button active" onclick="switchTab('users', event)">Users</button>
         <button class="tab-button" onclick="switchTab('resources', event)">Resources</button>
         <button class="tab-button" onclick="switchTab('equipment', event)">Equipment</button>
+        <button class="tab-button" onclick="switchTab('locations', event)">Locations</button>
     </div>
 
     <!-- Users Tab -->
@@ -321,6 +321,7 @@
             {% endfor %}
         </div>
     </div>
+
     <!-- Equipment Tab -->
     <div id="equipment-tab" class="tab-content">
         <div class="section-header">
@@ -346,6 +347,40 @@
                     </div>
                     <form method="post" action="{{ url_for('delete_equipment', equipment_id=equipment.id) }}" style="margin:0;">
                         <button class="button button-danger" type="submit" onclick="return confirm('Are you sure you want to remove this equipment?')">Remove Equipment</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Locations Tab -->
+    <div id="locations-tab" class="tab-content">
+        <div class="section-header">
+            <div class="search-container">
+                <input type="text"
+                       class="search-bar"
+                       placeholder="Search locations..."
+                       id="locationSearchInput"
+                       oninput="searchLocations()">
+            </div>
+            <button class="add-button" id="addLocationButton">
+                <span>+</span> Add Location
+            </button>
+        </div>
+
+        <div class="gallery" id="locations-gallery">
+            {% for location in locations %}
+                <div class="user-card">
+                    <div class="user-info">
+                        <h3>{{ location.name }}</h3>
+                        <p>ID: {{ location.id }}</p>
+                        <p>{{ location.address|default('') }}</p>
+                        {% if location.notes %}
+                            <p>Notes: {{ location.notes }}</p>
+                        {% endif %}
+                    </div>
+                    <form method="post" action="{{ url_for('delete_location', location_id=location.id) }}" style="margin:0;">
+                        <button class="button button-danger" type="submit" onclick="return confirm('Are you sure you want to remove this location?')">Remove Location</button>
                     </form>
                 </div>
             {% endfor %}
@@ -398,6 +433,24 @@
         </form>
     </div>
 </div>
+
+<!-- Locations Modal -->
+<div class="modal" id="addLocationModal">
+    <div class="modal-content">
+        <h2>Add New Location</h2>
+        <form id="addLocationForm" method="post" action="{{ url_for('add_location') }}">
+            <input type="text" name="name" id="locationName" placeholder="Location Name" required>
+            <input type="text" name="id" id="locationId" placeholder="ID Number" required>
+            <input type="text" name="address" id="locationAddress" placeholder="Address">
+            <input type="text" name="notes" id="locationNotes" placeholder="Notes">
+            <div class="modal-buttons">
+                <button class="modal-button cancel-button" type="button" id="cancelLocationBtn">Cancel</button>
+                <button class="modal-button confirm-button" type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // Simple tab switching
     function switchTab(tab, evt) {
@@ -427,14 +480,19 @@
             card.style.display = card.innerText.toLowerCase().includes(val) ? '' : 'none';
         });
     }
+    function searchLocations() {
+        const val = document.getElementById('locationSearchInput').value.toLowerCase();
+        document.querySelectorAll('#locations-gallery .user-card').forEach(card => {
+            card.style.display = card.innerText.toLowerCase().includes(val) ? '' : 'none';
+        });
+    }
 
-    // Modal handlers for Resource and Equipment
+    // Modal handlers
     document.addEventListener('DOMContentLoaded', function() {
         // Resource Modal
         const addResourceBtn = document.getElementById('addResourceButton');
         const addResourceModal = document.getElementById('addResourceModal');
         const cancelResourceBtn = document.getElementById('cancelResourceBtn');
-
         if (addResourceBtn && addResourceModal) {
             addResourceBtn.onclick = function() {
                 addResourceModal.style.display = 'flex';
@@ -454,7 +512,6 @@
         const addEquipmentBtn = document.getElementById('addEquipmentButton');
         const addEquipmentModal = document.getElementById('addEquipmentModal');
         const cancelEquipmentBtn = document.getElementById('cancelEquipmentBtn');
-
         if (addEquipmentBtn && addEquipmentModal) {
             addEquipmentBtn.onclick = function() {
                 addEquipmentModal.style.display = 'flex';
@@ -470,11 +527,31 @@
             if (e.target === addEquipmentModal) addEquipmentModal.style.display = 'none';
         });
 
-        // Esc closes both modals
+        // Locations Modal
+        const addLocationBtn = document.getElementById('addLocationButton');
+        const addLocationModal = document.getElementById('addLocationModal');
+        const cancelLocationBtn = document.getElementById('cancelLocationBtn');
+        if (addLocationBtn && addLocationModal) {
+            addLocationBtn.onclick = function() {
+                addLocationModal.style.display = 'flex';
+            };
+        }
+        if (cancelLocationBtn && addLocationModal) {
+            cancelLocationBtn.onclick = function() {
+                addLocationModal.style.display = 'none';
+                document.getElementById('addLocationForm').reset();
+            };
+        }
+        addLocationModal.addEventListener('click', function(e) {
+            if (e.target === addLocationModal) addLocationModal.style.display = 'none';
+        });
+
+        // Esc closes all modals
         window.addEventListener('keydown', function (evt) {
             if (evt.key === "Escape") {
                 addResourceModal.style.display = 'none';
                 addEquipmentModal.style.display = 'none';
+                addLocationModal.style.display = 'none';
                 hideConfirmDialog();
             }
         });

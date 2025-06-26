@@ -179,17 +179,21 @@ def admin():
                 cur.execute('SELECT id, name, status FROM equipment')
                 equipment_list = cur.fetchall()
 
+                cur.execute('SELECT id, name FROM locations')
+                locations = cur.fetchall()
+
         return render_template(
             'admin.html',
             users=users,
             resources=resources,
-            equipment_list=equipment_list
+            equipment_list=equipment_list,
+            locations=locations
         )
 
     except Exception as e:
         print(f"Admin dashboard load error: {e}")
         flash("Failed to load admin dashboard.", "error")
-        return render_template('admin.html', users=[], resources=[], equipment_list=[])
+        return render_template('admin.html', users=[], resources=[], equipment_list=[], locations=[])
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
@@ -239,6 +243,22 @@ def delete_equipment(equipment_id):
         flash('Failed to delete equipment.', 'error')
     return redirect(url_for('admin'))
 
+@app.route('/delete_location/<int:location_id>', methods=['POST'])
+def delete_location(location_id):
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM locations WHERE id = %s', (location_id,))
+                conn.commit()
+        flash('Location deleted.', 'success')
+    except Exception as e:
+        print(f"Delete location error: {e}")
+        flash('Failed to delete location.', 'error')
+    return redirect(url_for('admin'))
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -272,6 +292,12 @@ def initialize_tables():
                                                                      id SERIAL PRIMARY KEY,
                                                                      name VARCHAR(100) NOT NULL,
                                 status VARCHAR(50) NOT NULL DEFAULT 'Available'
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS locations (
+                                                                     id SERIAL PRIMARY KEY,
+                                                                     name VARCHAR(100) NOT NULL
                                 );
                             ''')
                 cur.execute('''
@@ -353,6 +379,26 @@ def add_equipment():
         flash('Failed to add equipment.', 'error')
     return redirect(url_for('admin'))
 
+@app.route('/add_location', methods=['POST'])
+def add_location():
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Location name required!', 'error')
+        return redirect(url_for('admin'))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO locations (name) VALUES (%s)', (name,))
+                conn.commit()
+        flash('Location added!', 'success')
+    except Exception as e:
+        print(f"Add location error: {e}")
+        flash('Failed to add location.', 'error')
+    return redirect(url_for('admin'))
+
 #############################################
 # Activity Submission
 #############################################
@@ -363,7 +409,7 @@ def submit_activity():
         flash('Please log in to submit an activity.', 'error')
         return redirect(url_for('login'))
 
-    # Fetch resources and equipment for the select fields
+    # Fetch resources, equipment, & locations for the select fields
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -371,8 +417,10 @@ def submit_activity():
                 resources = cur.fetchall()
                 cur.execute('SELECT id, name FROM equipment ORDER BY name;')
                 equipment_list = cur.fetchall()
+                cur.execute('SELECT id, name FROM locations ORDER BY name;')
+                locations = cur.fetchall()
     except Exception as e:
-        print(f"Error fetching resources/equipment: {e}")
+        print(f"Error fetching resources/equipment/locations: {e}")
         flash('Failed to load activity submission form.', 'error')
         return redirect(url_for('dashboard'))
 
@@ -386,22 +434,27 @@ def submit_activity():
         shift_start = request.form.get('shift_start')
         shift_end = request.form.get('shift_end')
         manpower_count = request.form.get('manpower_count')
-        location = request.form.get('location', '').strip()
+        # Handle location via dropdown
+        location_id = request.form.get('location_id')
         incident_report = request.form.get('incident_report')
         incident_details = request.form.get('incident_details', '').strip()
 
-        # Convert checkbox
         incident_report_bool = True if incident_report else False
         manpower_count_int = int(manpower_count) if manpower_count else None
 
-        # Multiple selects:
         resources_used_ids = request.form.getlist('resources_used')
         equipment_used_ids = request.form.getlist('equipment_used')
 
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Insert into main activity_submissions table
+                    # Get the location name from ID if set
+                    location_name = None
+                    if location_id:
+                        cur.execute('SELECT name FROM locations WHERE id = %s', (location_id,))
+                        loc = cur.fetchone()
+                        location_name = loc['name'] if loc else None
+
                     cur.execute('''
                                 INSERT INTO activity_submissions (
                                     submitted_by, activity_date, activity_type, description,
@@ -414,26 +467,23 @@ def submit_activity():
                                          ) RETURNING id
                                 ''', (
                                     submitted_by, activity_date, activity_type, description,
-                                    shift, shift_start, shift_end, location, manpower_count_int,
+                                    shift, shift_start, shift_end, location_name, manpower_count_int,
                                     incident_report_bool, incident_details if incident_report_bool else None
                                 ))
                     activity_submission_id = cur.fetchone()['id']
 
-                    # Resources relationship
                     for resource_id in resources_used_ids:
                         cur.execute(
                             'INSERT INTO activity_submission_resources (activity_submission_id, resource_id) VALUES (%s, %s)',
                             (activity_submission_id, int(resource_id))
                         )
 
-                    # Equipment relationship
                     for equipment_id in equipment_used_ids:
                         cur.execute(
                             'INSERT INTO activity_submission_equipment (activity_submission_id, equipment_id) VALUES (%s, %s)',
                             (activity_submission_id, int(equipment_id))
                         )
 
-                    # Optionally, increment user's submissions count:
                     cur.execute('UPDATE users SET submissions = submissions + 1 WHERE id = %s', (submitted_by, ))
                     conn.commit()
 
@@ -443,11 +493,9 @@ def submit_activity():
         except Exception as e:
             print(f"Error submitting activity: {e}")
             flash('Failed to submit activity, please try again.', 'error')
-            # Let the user try again with the same lists!
-            return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list)
+            return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list, locations=locations)
 
-    # GET: render the form
-    return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list)
+    return render_template('submit_activity.html', resources=resources, equipment_list=equipment_list, locations=locations)
 
 #############################################
 # Total Activities Route
@@ -479,16 +527,16 @@ def total_activities():
                                 u.lastname,
                                 ARRAY(
                                     SELECT r.name
-                            FROM activity_submission_resources as asr
-                            JOIN resources r ON asr.resource_id = r.id
-                            WHERE asr.activity_submission_id = a.id
-                        ) AS resources_used,
+                                    FROM activity_submission_resources as asr
+                                    JOIN resources r ON asr.resource_id = r.id
+                                    WHERE asr.activity_submission_id = a.id
+                                ) AS resources_used,
                                 ARRAY(
                                     SELECT e.name
-                            FROM activity_submission_equipment as ase
-                            JOIN equipment e ON ase.equipment_id = e.id
-                            WHERE ase.activity_submission_id = a.id
-                        ) AS equipment_used
+                                    FROM activity_submission_equipment as ase
+                                    JOIN equipment e ON ase.equipment_id = e.id
+                                    WHERE ase.activity_submission_id = a.id
+                                ) AS equipment_used
                             FROM activity_submissions a
                                      LEFT JOIN users u ON a.submitted_by = u.id
                             ORDER BY a.activity_date DESC, a.id DESC
@@ -530,16 +578,16 @@ def incidents():
                                 u.lastname,
                                 ARRAY(
                                     SELECT r.name
-                            FROM activity_submission_resources as asr
-                            JOIN resources r ON asr.resource_id = r.id
-                            WHERE asr.activity_submission_id = a.id
-                        ) AS resources_used,
+                                    FROM activity_submission_resources as asr
+                                    JOIN resources r ON asr.resource_id = r.id
+                                    WHERE asr.activity_submission_id = a.id
+                                ) AS resources_used,
                                 ARRAY(
                                     SELECT e.name
-                            FROM activity_submission_equipment as ase
-                            JOIN equipment e ON ase.equipment_id = e.id
-                            WHERE ase.activity_submission_id = a.id
-                        ) AS equipment_used
+                                    FROM activity_submission_equipment as ase
+                                    JOIN equipment e ON ase.equipment_id = e.id
+                                    WHERE ase.activity_submission_id = a.id
+                                ) AS equipment_used
                             FROM activity_submissions a
                                      LEFT JOIN users u ON a.submitted_by = u.id
                             WHERE a.incident_report = TRUE
