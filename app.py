@@ -179,9 +179,13 @@ def admin():
                 cur.execute('SELECT id, name, status FROM equipment')
                 equipment_list = cur.fetchall()
 
-                # Add query for locations
-                cur.execute('SELECT id, site_name, address_line_1, post_code, what3words FROM locations')
-                locations = cur.fetchall()
+                # Add locations query with error handling
+                try:
+                    cur.execute('SELECT id, site_name, address_line_1, post_code, what3words FROM locations')
+                    locations = cur.fetchall()
+                except Exception as loc_error:
+                    print(f"Locations query error: {loc_error}")
+                    locations = []
 
         return render_template(
             'admin.html',
@@ -279,6 +283,7 @@ def initialize_tables():
                                 status VARCHAR(50) NOT NULL DEFAULT 'Available'
                                 );
                             ''')
+                # Add locations table
                 cur.execute('''
                             CREATE TABLE IF NOT EXISTS locations (
                                                                      id SERIAL PRIMARY KEY,
@@ -422,7 +427,7 @@ def submit_activity():
         flash('Please log in to submit an activity.', 'error')
         return redirect(url_for('login'))
 
-    # Fetch resources and equipment for the select fields
+    # Fetch resources, equipment, and locations for the select fields
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -430,7 +435,6 @@ def submit_activity():
                 resources = cur.fetchall()
                 cur.execute('SELECT id, name FROM equipment ORDER BY name;')
                 equipment_list = cur.fetchall()
-                # Add locations query
                 cur.execute('SELECT id, site_name, address_line_1, post_code FROM locations ORDER BY site_name;')
                 locations = cur.fetchall()
     except Exception as e:
