@@ -144,8 +144,14 @@
         <label for="manpower_count">Workers Involved</label>
         <input type="number" id="manpower_count" name="manpower_count" min="1" placeholder="e.g., 5">
 
-        <label for="location">Location / Section</label>
-        <input type="text" id="location" name="location" placeholder="e.g., North Wing, Zone C">
+        <label for="location">Location</label>
+        <select id="location" name="location" required>
+            <option value="">Select Location</option>
+            {% for location in locations %}
+                <option value="{{ location.site_name }}">{{ location.site_name }} - {{ location.address_line_1 }}</option>
+            {% endfor %}
+            <option value="Other">Other (specify in description)</option>
+        </select>
 
         <label>
             <input type="checkbox" id="incident_report" name="incident_report" value="1">
