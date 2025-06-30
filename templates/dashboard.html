@@ -219,9 +219,11 @@
                 <a href="/total_activities" class="list-group-item list-group-item-action">
                     <i class="bi bi-list-check me-2"></i>Total Activities
                 </a>
-                <a href="admin" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock me-2"></i>Admin Panel
-                </a>
+                {% if permission_level == 'Admin' %}
+                    <a href="admin" class="list-group-item list-group-item-action">
+                        <i class="bi bi-shield-lock me-2"></i>Admin Panel
+                    </a>
+                {% endif %}
             </div>
         </div>
 

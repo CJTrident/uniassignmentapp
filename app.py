@@ -138,22 +138,22 @@ def dashboard():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute('SELECT firstname, lastname FROM users WHERE email = %s', (session['email'],))
+                cur.execute('SELECT firstname, lastname, permission_level FROM users WHERE email = %s', (session['email'],))
                 user_info = cur.fetchone()
                 if user_info:
                     return render_template(
                         'dashboard.html',
                         email=session['email'],
                         firstname=user_info.get('firstname', ''),
-                        lastname=user_info.get('lastname', '')
+                        lastname=user_info.get('lastname', ''),
+                        permission_level=user_info.get('permission_level', 'User')
                     )
     except Exception as e:
         print(f"Dashboard error: {e}")
         flash('Error loading dashboard', 'error')
         return redirect(url_for('login'))
 
-    return render_template('dashboard.html', email=session['email'])
-
+    return render_template('dashboard.html', email=session['email'], permission_level='User')
 @app.route('/admin')
 def admin():
     if 'email' not in session:
