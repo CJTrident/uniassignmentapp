@@ -28,6 +28,84 @@ def get_db_connection():
 def generate_error_id():
     return str(uuid.uuid4())[:8]
 
+def initialize_tables():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS users (
+                                                                 id SERIAL PRIMARY KEY,
+                                                                 firstname VARCHAR(100) NOT NULL,
+                                lastname VARCHAR(100) NOT NULL,
+                                email VARCHAR(255) UNIQUE NOT NULL,
+                                password_hash VARCHAR(255) NOT NULL,
+                                permission_level VARCHAR(20) DEFAULT 'User',
+                                submissions INTEGER DEFAULT 0,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS resources (
+                                                                     id SERIAL PRIMARY KEY,
+                                                                     name VARCHAR(100) NOT NULL
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS equipment (
+                                                                     id SERIAL PRIMARY KEY,
+                                                                     name VARCHAR(100) NOT NULL,
+                                status VARCHAR(50) NOT NULL DEFAULT 'Available'
+                                );
+                            ''')
+                # Add locations table
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS locations (
+                                                                     id SERIAL PRIMARY KEY,
+                                                                     site_name VARCHAR(255) NOT NULL,
+                                address_line_1 VARCHAR(255) NOT NULL,
+                                postcode VARCHAR(20) NOT NULL,
+                                what3words VARCHAR(100) NOT NULL
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_submissions (
+                                                                                id SERIAL PRIMARY KEY,
+                                                                                submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                                activity_date DATE NOT NULL,
+                                activity_type VARCHAR(100) NOT NULL,
+                                description TEXT,
+                                shift VARCHAR(20) NOT NULL,
+                                shift_start TIME NOT NULL,
+                                shift_end TIME NOT NULL,
+                                location VARCHAR(255),
+                                manpower_count INTEGER,
+                                incident_report BOOLEAN DEFAULT FALSE,
+                                incident_details TEXT,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_submission_resources (
+                                                                                         activity_submission_id INTEGER REFERENCES activity_submissions(id) ON DELETE CASCADE,
+                                resource_id INTEGER REFERENCES resources(id) ON DELETE CASCADE,
+                                PRIMARY KEY (activity_submission_id, resource_id)
+                                );
+                            ''')
+                cur.execute('''
+                            CREATE TABLE IF NOT EXISTS activity_submission_equipment (
+                                                                                         activity_submission_id INTEGER REFERENCES activity_submissions(id) ON DELETE CASCADE,
+                                equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE,
+                                PRIMARY KEY (activity_submission_id, equipment_id)
+                                );
+                            ''')
+                conn.commit()
+        print("Database tables initialized successfully!")
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+
+# Initialize tables before defining routes
+initialize_tables()
+
 @app.errorhandler(404)
 def not_found_error(error):
     error_id = generate_error_id()
@@ -154,6 +232,7 @@ def dashboard():
         return redirect(url_for('login'))
 
     return render_template('dashboard.html', email=session['email'], permission_level='User')
+
 @app.route('/admin')
 def admin():
     if 'email' not in session:
@@ -200,6 +279,121 @@ def admin():
         flash("Failed to load admin dashboard.", "error")
         return render_template('admin.html', users=[], resources=[], equipment_list=[], locations=[])
 
+# Add routes for adding resources, equipment, and locations
+@app.route('/add_resource', methods=['POST'])
+def add_resource():
+    print("=== ADD RESOURCE ROUTE CALLED ===")
+    print(f"Session email: {session.get('email')}")
+    print(f"Session permission: {session.get('permission_level')}")
+    print(f"Form data: {dict(request.form)}")
+
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        print("Authorization failed - redirecting to dashboard")
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('name', '').strip()
+    print(f"Resource name extracted: '{name}'")
+
+    if not name:
+        print("Resource name is empty")
+        flash('Resource name required!', 'error')
+        return redirect(url_for('admin'))
+
+    try:
+        print("Attempting to insert resource into database...")
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO resources (name) VALUES (%s)', (name,))
+                conn.commit()
+                print("Resource inserted successfully")
+        flash('Resource added!', 'success')
+    except Exception as e:
+        print(f"Add resource error: {e}")
+        flash('Failed to add resource.', 'error')
+
+    print("Redirecting to admin page")
+    return redirect(url_for('admin'))
+
+@app.route('/add_equipment', methods=['POST'])
+def add_equipment():
+    print("=== ADD EQUIPMENT ROUTE CALLED ===")
+    print(f"Session email: {session.get('email')}")
+    print(f"Session permission: {session.get('permission_level')}")
+    print(f"Form data: {dict(request.form)}")
+
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        print("Authorization failed - redirecting to dashboard")
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('name', '').strip()
+    status = request.form.get('status', '').strip() or 'Available'
+    print(f"Equipment name: '{name}', status: '{status}'")
+
+    if not name:
+        print("Equipment name is empty")
+        flash('Equipment name required!', 'error')
+        return redirect(url_for('admin'))
+
+    try:
+        print("Attempting to insert equipment into database...")
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('INSERT INTO equipment (name, status) VALUES (%s, %s)', (name, status))
+                conn.commit()
+                print("Equipment inserted successfully")
+        flash('Equipment added!', 'success')
+    except Exception as e:
+        print(f"Add equipment error: {e}")
+        flash('Failed to add equipment.', 'error')
+
+    print("Redirecting to admin page")
+    return redirect(url_for('admin'))
+
+@app.route('/add_location', methods=['POST'])
+def add_location():
+    print("=== ADD LOCATION ROUTE CALLED ===")
+    print(f"Session email: {session.get('email')}")
+    print(f"Session permission: {session.get('permission_level')}")
+    print(f"Form data: {dict(request.form)}")
+
+    if 'email' not in session or session.get('permission_level') != 'Admin':
+        print("Authorization failed - redirecting to dashboard")
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+
+    site_name = request.form.get('site_name', '').strip()
+    address_line_1 = request.form.get('address_line_1', '').strip()
+    postcode = request.form.get('postcode', '').strip()
+    what3words = request.form.get('what3words', '').strip()
+
+    print(f"Location data - Site: '{site_name}', Address: '{address_line_1}', Postcode: '{postcode}', What3words: '{what3words}'")
+
+    if not all([site_name, address_line_1, postcode, what3words]):
+        print("Missing required location fields")
+        flash('All location fields are required!', 'error')
+        return redirect(url_for('admin'))
+
+    try:
+        print("Attempting to insert location into database...")
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'INSERT INTO locations (site_name, address_line_1, postcode, what3words) VALUES (%s, %s, %s, %s)',
+                    (site_name, address_line_1, postcode, what3words)
+                )
+                conn.commit()
+                print("Location inserted successfully")
+        flash('Location added!', 'success')
+    except Exception as e:
+        print(f"Add location error: {e}")
+        flash('Failed to add location.', 'error')
+
+    print("Redirecting to admin page")
+    return redirect(url_for('admin'))
+
+# Delete routes
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if 'email' not in session or session.get('permission_level') != 'Admin':
@@ -248,159 +442,6 @@ def delete_equipment(equipment_id):
         flash('Failed to delete equipment.', 'error')
     return redirect(url_for('admin'))
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Logged out successfully.', 'success')
-    return redirect(url_for('login'))
-
-def initialize_tables():
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS users (
-                                                                 id SERIAL PRIMARY KEY,
-                                                                 firstname VARCHAR(100) NOT NULL,
-                                lastname VARCHAR(100) NOT NULL,
-                                email VARCHAR(255) UNIQUE NOT NULL,
-                                password_hash VARCHAR(255) NOT NULL,
-                                permission_level VARCHAR(20) DEFAULT 'User',
-                                submissions INTEGER DEFAULT 0,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                                );
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS resources (
-                                                                     id SERIAL PRIMARY KEY,
-                                                                     name VARCHAR(100) NOT NULL
-                                );
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS equipment (
-                                                                     id SERIAL PRIMARY KEY,
-                                                                     name VARCHAR(100) NOT NULL,
-                                status VARCHAR(50) NOT NULL DEFAULT 'Available'
-                                );
-                            ''')
-                # Add locations table
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS locations (
-                                                                     id SERIAL PRIMARY KEY,
-                                                                     site_name VARCHAR(255) NOT NULL,
-                                address_line_1 VARCHAR(255) NOT NULL,
-                                postcode VARCHAR(20) NOT NULL,
-                                what3words VARCHAR(100) NOT NULL
-                                );
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS activity_submissions (
-                                                                                id SERIAL PRIMARY KEY,
-                                                                                submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                                activity_date DATE NOT NULL,
-                                activity_type VARCHAR(100) NOT NULL,
-                                description TEXT,
-                                shift VARCHAR(20) NOT NULL,
-                                shift_start TIME NOT NULL,
-                                shift_end TIME NOT NULL,
-                                location VARCHAR(255),
-                                manpower_count INTEGER,
-                                incident_report BOOLEAN DEFAULT FALSE,
-                                incident_details TEXT,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                                );
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS activity_submission_resources (
-                                                                                         activity_submission_id INTEGER REFERENCES activity_submissions(id) ON DELETE CASCADE,
-                                resource_id INTEGER REFERENCES resources(id) ON DELETE CASCADE,
-                                PRIMARY KEY (activity_submission_id, resource_id)
-                                );
-                            ''')
-                cur.execute('''
-                            CREATE TABLE IF NOT EXISTS activity_submission_equipment (
-                                                                                         activity_submission_id INTEGER REFERENCES activity_submissions(id) ON DELETE CASCADE,
-                                equipment_id INTEGER REFERENCES equipment(id) ON DELETE CASCADE,
-                                PRIMARY KEY (activity_submission_id, equipment_id)
-                                );
-                            ''')
-                conn.commit()
-        print("Database tables initialized successfully!")
-    except Exception as e:
-        print(f"Database initialization error: {e}")
-
-initialize_tables()
-
-@app.route('/add_resource', methods=['POST'])
-def add_resource():
-    if 'email' not in session or session.get('permission_level') != 'Admin':
-        flash('Unauthorized', 'error')
-        return redirect(url_for('dashboard'))
-    name = request.form.get('name', '').strip()
-    if not name:
-        flash('Resource name required!', 'error')
-        return redirect(url_for('admin'))
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute('INSERT INTO resources (name) VALUES (%s)', (name,))
-                conn.commit()
-        flash('Resource added!', 'success')
-    except Exception as e:
-        print(f"Add resource error: {e}")
-        flash('Failed to add resource.', 'error')
-    return redirect(url_for('admin'))
-
-@app.route('/add_equipment', methods=['POST'])
-def add_equipment():
-    if 'email' not in session or session.get('permission_level') != 'Admin':
-        flash('Unauthorized', 'error')
-        return redirect(url_for('dashboard'))
-    name = request.form.get('name', '').strip()
-    status = request.form.get('status', '').strip() or 'Available'
-    if not name:
-        flash('Equipment name required!', 'error')
-        return redirect(url_for('admin'))
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute('INSERT INTO equipment (name, status) VALUES (%s, %s)', (name, status))
-                conn.commit()
-        flash('Equipment added!', 'success')
-    except Exception as e:
-        print(f"Add equipment error: {e}")
-        flash('Failed to add equipment.', 'error')
-    return redirect(url_for('admin'))
-
-@app.route('/add_location', methods=['POST'])
-def add_location():
-    if 'email' not in session or session.get('permission_level') != 'Admin':
-        flash('Unauthorized', 'error')
-        return redirect(url_for('dashboard'))
-
-    site_name = request.form.get('site_name', '').strip()
-    address_line_1 = request.form.get('address_line_1', '').strip()
-    postcode = request.form.get('postcode', '').strip()
-    what3words = request.form.get('what3words', '').strip()
-
-    if not all([site_name, address_line_1, postcode, what3words]):
-        flash('All location fields are required!', 'error')
-        return redirect(url_for('admin'))
-
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    'INSERT INTO locations (site_name, address_line_1, postcode, what3words) VALUES (%s, %s, %s, %s)',
-                    (site_name, address_line_1, postcode, what3words)
-                )
-                conn.commit()
-        flash('Location added!', 'success')
-    except Exception as e:
-        print(f"Add location error: {e}")
-        flash('Failed to add location.', 'error')
-    return redirect(url_for('admin'))
-
 @app.route('/delete_location/<int:location_id>', methods=['POST'])
 def delete_location(location_id):
     if 'email' not in session or session.get('permission_level') != 'Admin':
@@ -416,6 +457,12 @@ def delete_location(location_id):
         print(f"Delete location error: {e}")
         flash('Failed to delete location.', 'error')
     return redirect(url_for('admin'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('login'))
 
 #############################################
 # Activity Submission
